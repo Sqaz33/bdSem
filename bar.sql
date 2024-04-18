@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS `Storage_Items` (
 	`storage_condition` int NOT NULL,
 	`shelf_life_in_days` int NOT NULL,
 	`type` int NOT NULL,
+	`supplier` varchar(255),
 	PRIMARY KEY (`id`)
 );
 
@@ -119,9 +120,23 @@ CREATE TABLE IF NOT EXISTS `Item_types` (
 	PRIMARY KEY (`id`)
 );
 
+CREATE TABLE IF NOT EXISTS `Expenses` (
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
+	`storage_item_id` int,
+	`salary_id` int,
+	`element_quantity` int NOT NULL,
+	`date` date NOT NULL,
+	`type` int NOT NULL,
+	PRIMARY KEY (`id`)
+);
 
-ALTER TABLE `Loyalty_program_accounts` ADD CONSTRAINT `Loyalty_program_accounts_fk1` FOREIGN KEY (`client_phone_number`) REFERENCES `Clients`(`phone_number`);
+CREATE TABLE IF NOT EXISTS `Types_of_expenditure` (
+	`id` int NOT NULL UNIQUE,
+	`name` varchar(255) NOT NULL UNIQUE,
+	PRIMARY KEY (`id`)
+);
 
+ALTER TABLE `Clients` ADD CONSTRAINT `Clients_fk0` FOREIGN KEY (`phone_number`) REFERENCES `Loyalty_program_accounts`(`client_phone_number`);
 ALTER TABLE `Loyalty_program_accounts` ADD CONSTRAINT `Loyalty_program_accounts_fk2` FOREIGN KEY (`lvl_name`) REFERENCES `Loyalty_program_levels`(`name`);
 
 ALTER TABLE `Orders` ADD CONSTRAINT `Orders_fk0` FOREIGN KEY (`id`) REFERENCES `Order_line`(`order`);
@@ -154,3 +169,9 @@ ALTER TABLE `Storage_Items` ADD CONSTRAINT `Storage_Items_fk4` FOREIGN KEY (`sto
 ALTER TABLE `Storage_Items` ADD CONSTRAINT `Storage_Items_fk5` FOREIGN KEY (`storage_condition`) REFERENCES `Storage_conditions`(`id`);
 
 ALTER TABLE `Storage_Items` ADD CONSTRAINT `Storage_Items_fk7` FOREIGN KEY (`type`) REFERENCES `Item_types`(`id`);
+
+ALTER TABLE `Expenses` ADD CONSTRAINT `Expenses_fk1` FOREIGN KEY (`storage_item_id`) REFERENCES `Storage_Items`(`id`);
+
+ALTER TABLE `Expenses` ADD CONSTRAINT `Expenses_fk2` FOREIGN KEY (`salary_id`) REFERENCES `Job_titles`(`id`);
+
+ALTER TABLE `Expenses` ADD CONSTRAINT `Expenses_fk5` FOREIGN KEY (`type`) REFERENCES `Types_of_expenditure`(`id`);
