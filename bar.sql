@@ -5,10 +5,10 @@ CREATE TABLE IF NOT EXISTS `Clients` (
 );
 
 CREATE TABLE IF NOT EXISTS `Loyalty_program_accounts` (
-	`money_spent` int NOT NULL,
+	`money_spent` int AUTO_INCREMENT NOT NULL,
 	`client_phone_number` varchar(255) NOT NULL UNIQUE,
 	`lvl_name` int NOT NULL,
-	`id` int NOT NULL,
+	`id` int NOT NULL UNIQUE,
 	PRIMARY KEY (`id`)
 );
 
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `Loyalty_program_levels` (
 );
 
 CREATE TABLE IF NOT EXISTS `Orders` (
-	`id` int NOT NULL UNIQUE,
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`date` int NOT NULL,
 	`clients_phone_number` varchar(255),
 	`who_issued` int NOT NULL,
@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS `Orders` (
 );
 
 CREATE TABLE IF NOT EXISTS `Menu_items` (
-	`name` varchar(255) NOT NULL UNIQUE,
-	`id` int NOT NULL,
+	`name` int AUTO_INCREMENT NOT NULL UNIQUE,
+	`id` int NOT NULL UNIQUE,
 	`price` int NOT NULL,
 	`manufacturer` int NOT NULL,
 	PRIMARY KEY (`id`)
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS `Order_line` (
 );
 
 CREATE TABLE IF NOT EXISTS `Employees` (
-	`id` int NOT NULL UNIQUE,
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`full_name` int NOT NULL,
 	`job_title` varchar(255) NOT NULL,
 	`overtime_hours` int NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `Employees` (
 );
 
 CREATE TABLE IF NOT EXISTS `Job_titles` (
-	`name` varchar(255) NOT NULL UNIQUE,
+	`name` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`id` int NOT NULL UNIQUE,
 	`salary` int NOT NULL,
 	`duty` varchar(255) NOT NULL,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS `Menu_item_composition` (
 
 CREATE TABLE IF NOT EXISTS `Salary_accountings` (
 	`employee_id` int NOT NULL UNIQUE,
-	`Id` int NOT NULL UNIQUE,
+	`Id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`payment_date` date NOT NULL,
 	`final_payment` int NOT NULL,
 	PRIMARY KEY (`Id`)
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS `Menu_item_2_container` (
 );
 
 CREATE TABLE IF NOT EXISTS `Warehouse_spaces` (
-	`id` int NOT NULL UNIQUE,
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`type` int NOT NULL,
 	`name` varchar(255) NOT NULL,
 	`capacity` int NOT NULL,
@@ -96,13 +96,13 @@ CREATE TABLE IF NOT EXISTS `Warehouse_spaces` (
 );
 
 CREATE TABLE IF NOT EXISTS `Storage_conditions` (
-	`id` int NOT NULL UNIQUE,
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`conditions` varchar(255) NOT NULL,
 	PRIMARY KEY (`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `Storage_Items` (
-	`id` int NOT NULL UNIQUE,
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`name` int NOT NULL UNIQUE,
 	`characteristics` int NOT NULL,
 	`price` int NOT NULL,
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS `Item_types` (
 );
 
 CREATE TABLE IF NOT EXISTS `Expenses` (
-	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
+	`id` int NOT NULL UNIQUE,
 	`storage_item_id` int,
 	`salary_id` int,
 	`element_quantity` int NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `Expenses` (
 );
 
 CREATE TABLE IF NOT EXISTS `Types_of_expenditure` (
-	`id` int NOT NULL UNIQUE,
+	`id` int AUTO_INCREMENT NOT NULL UNIQUE,
 	`name` varchar(255) NOT NULL UNIQUE,
 	PRIMARY KEY (`id`)
 );
