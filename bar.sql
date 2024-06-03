@@ -1,11 +1,11 @@
 --СКРИПТЫ В КОНЦЕ ФАЙЛА
 
 DO $$ DECLARE
-    r RECORD;
+	r RECORD;
 BEGIN
-    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-    END LOOP;
+	FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+		EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+	END LOOP;
 END $$;
 
 --<<<<<<<<<<<<работа с сотрудниками<<<<<<<<<<<<<<<<<
@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS "Menu_items" (
 CREATE TABLE IF NOT EXISTS "Order_line" ( 
 	"order_ID" integer NOT NULL, 
 	"menu_item_ID" integer NOT NULL,
+	"quantity" integer NOT NULL DEFAULT 1,
 	PRIMARY KEY ("order_ID", "menu_item_ID")
 );
 
@@ -84,7 +85,8 @@ CREATE TABLE IF NOT EXISTS "Orders" (
 	"date" timestamp NOT NULL,
 	"client_ID" integer,
 	"employee_ID" integer,
-	"status_ID" integer NOT NULL
+	"status_ID" integer NOT NULL,
+	"total" integer NOT NULL
 );
 
 --таблица статусов заказов
@@ -281,25 +283,25 @@ INSERT INTO "Clients" ("phone_number", "full_name")
 
 INSERT INTO "Loyalty_program_levels" ("name", "discount", "price")
 	VALUES 
-	    ('Start', 1, 1000),
-	    ('Bronze', 2, 2000),
-	    ('Silver', 3, 3000),
-	    ('Gold', 4, 4000),
-	    ('Platinum', 5, 5000),
-	    ('Diamond', 6, 6000);
+		('Start', 1, 1000),
+		('Bronze', 2, 2000),
+		('Silver', 3, 3000),
+		('Gold', 4, 4000),
+		('Platinum', 5, 5000),
+		('Diamond', 6, 6000);
 
 INSERT INTO "Loyalty_program_accounts" ("money_spent", "client_ID", "lvl_ID")
 	VALUES 
-	    (1000, 1, 1),
-	    (2000, 2, 2),
-	    (3000, 3, 3),
-	    (4000, 4, 4),
-	    (5000, 5, 5),
-	    (6000, 6, 6),
-	    (1500, 7, 1),
-	    (2500, 8, 2),
-	    (3500, 9, 3),
-	    (4500, 10, 4);
+		(1000, 1, 1),
+		(2000, 2, 2),
+		(3000, 3, 3),
+		(4000, 4, 4),
+		(5000, 5, 5),
+		(6000, 6, 6),
+		(1500, 7, 1),
+		(2500, 8, 2),
+		(3500, 9, 3),
+		(4500, 10, 4);
 
 
 --связать все аккаунты программы лояльности и клиентов
@@ -320,123 +322,123 @@ END $$;
 
 INSERT INTO "Job_titles" ("name", "salary", "duty")
 	VALUES 
-	    ('Бармен', 30000, 'Готовить и подавать напитки клиентам'),
-	    ('Менеджер бара', 50000, 'Управлять ежедневной работой бара'),
-	    ('Официант', 25000, 'Принимать заказы и подавать еду и напитки'),
-	    ('Шеф-повар', 45000, 'Готовить блюда и управлять кухонным персоналом'),
-	    ('Хостес', 28000, 'Встречать и размещать клиентов'),
-	    ('Помощник бармена', 22000, 'Помогать барменам с пополнением запасов и уборкой'),
-	    ('Сомелье', 40000, 'Консультировать клиентов по выбору вин'),
-	    ('Миксолог', 35000, 'Создавать и подавать специальные коктейли'),
-	    ('Посудомойщик', 20000, 'Мыть посуду и кухонное оборудование'),
-	    ('Охранник', 32000, 'Обеспечивать безопасность клиентов и персонала');
+		('Бармен', 30000, 'Готовить и подавать напитки клиентам'),
+		('Менеджер бара', 50000, 'Управлять ежедневной работой бара'),
+		('Официант', 25000, 'Принимать заказы и подавать еду и напитки'),
+		('Шеф-повар', 45000, 'Готовить блюда и управлять кухонным персоналом'),
+		('Хостес', 28000, 'Встречать и размещать клиентов'),
+		('Помощник бармена', 22000, 'Помогать барменам с пополнением запасов и уборкой'),
+		('Сомелье', 40000, 'Консультировать клиентов по выбору вин'),
+		('Миксолог', 35000, 'Создавать и подавать специальные коктейли'),
+		('Посудомойщик', 20000, 'Мыть посуду и кухонное оборудование'),
+		('Охранник', 32000, 'Обеспечивать безопасность клиентов и персонала');
 
 
 INSERT INTO "Employees" ("full_name", "job_titel_ID", "overtime_hours", "final_payment", "payment_date")
 	VALUES 
-	    ('Иван Иванов', 1, 10, 31000, '2024-02-01'),
-	    ('Петр Петров', 2, 5, 50500, '2024-02-01'),
-	    ('Алексей Алексеев', 3, 8, 27000, '2024-02-01'),
-	    ('Сергей Сергеев', 4, 12,  49500, '2024-02-01'),
-	    ('Мария Мариева', 5, 6, 29000, '2024-02-01'),
-	    ('Анна Аннова', 6, 4,  23000, '2024-02-01'),
-	    ('Дмитрий Дмитриев', 7, 15,  46000, '2024-02-01'),
-	    ('Елена Еленова', 8, 7,  34000, '2024-02-01'),
-	    ('Ольга Ольгина', 9, 9, 21500, '2024-02-01'),
-	    ('Николай Николаев', 10, 3,  35200, '2024-02-01');
+		('Иван Иванов', 1, 10, 31000, '2024-02-01'),
+		('Петр Петров', 2, 5, 50500, '2024-02-01'),
+		('Алексей Алексеев', 3, 8, 27000, '2024-02-01'),
+		('Сергей Сергеев', 4, 12,  49500, '2024-02-01'),
+		('Мария Мариева', 5, 6, 29000, '2024-02-01'),
+		('Анна Аннова', 6, 4,  23000, '2024-02-01'),
+		('Дмитрий Дмитриев', 7, 15,  46000, '2024-02-01'),
+		('Елена Еленова', 8, 7,  34000, '2024-02-01'),
+		('Ольга Ольгина', 9, 9, 21500, '2024-02-01'),
+		('Николай Николаев', 10, 3,  35200, '2024-02-01');
 
 INSERT INTO "Item_types" ("name", "consamable")
 	VALUES 
-	    ('Напитки', TRUE),
-	    ('Еда', TRUE),
-	    ('Тара', FALSE),
-	    ('Алкогольные напитки', TRUE),
-	    ('Безалкогольные напитки', TRUE),
-	    ('Закуски', TRUE),
-	    ('Коктейли', TRUE),
-	    ('Соки', TRUE),
-	    ('Пиво', TRUE),
-	    ('Вино', TRUE);
+		('Напитки', TRUE),
+		('Еда', TRUE),
+		('Тара', FALSE),
+		('Алкогольные напитки', TRUE),
+		('Безалкогольные напитки', TRUE),
+		('Закуски', TRUE),
+		('Коктейли', TRUE),
+		('Соки', TRUE),
+		('Пиво', TRUE),
+		('Вино', TRUE);
 
 INSERT INTO "Storage_conditions" ("name")
 	VALUES 
-	    ('Сухое место'),
-	    ('Холодильник'),
-	    ('Морозильная камера'),
-	    ('Контейнеры для сыпучих продуктов'),
-	    ('Темное место'),
-	    ('Открытый склад'),
-	    ('Кладовая'),
-	    ('Полка с регулируемой температурой'),
-	    ('Влажная среда'),
-	    ('Подвесная система хранения');
+		('Сухое место'),
+		('Холодильник'),
+		('Морозильная камера'),
+		('Контейнеры для сыпучих продуктов'),
+		('Темное место'),
+		('Открытый склад'),
+		('Кладовая'),
+		('Полка с регулируемой температурой'),
+		('Влажная среда'),
+		('Подвесная система хранения');
 
 INSERT INTO "Storage_items" ("name", "characteristics", "volume", "price", "storage_condition_ID", "shell_life_in_days", "supplier", "item_type_ID")
 	VALUES 
-	    ('Водка "Абсолют"', 'Прозрачный алкогольный напиток', 0.7, 800, 2, NULL, 'Компания А', 4),
-	    ('Пиво "Жигулевское"', 'Светлый лагер', 0.5, 50, 6, 30, 'Компания Б', 4),
-	    ('Коньяк "Hennessy VS"', 'Выдержанный спиртной напиток', 0.75, 1500, 3, NULL, 'Компания В', 4),
-	    ('Шампанское "Moët & Chandon"', 'Игристое вино', 0.75, 2500, 2, NULL, 'Компания Г', 5),
-	    ('Виски "Johnnie Walker Black Label"', 'Выдержанный зерновой спирт', 0.7, 2000, 2, NULL, 'Компания Д', 4),
-	    ('Консервы "Сельдь в томатном соусе"', 'Консервированная рыба', 0.3, 100, 1, 365, 'Компания Е', 2),
-	    ('Сыр "Пармезан"', 'Твердый сыр, сырная корка', 0.25, 300, 5, 180, 'Компания Ж', 2),
-	    ('Пивной кег "Heineken"', 'Емкость для пива', 50, 5000, 7, 14, 'Компания З', 3),
-	    ('Лимонад "Fanta"', 'Газированный напиток, апельсиновый вкус', 1.5, 80, 8, NULL, 'Компания И', 4),
-	    ('Конфеты "Ferrero Rocher"', 'Шоколадные конфеты с орехами', 0.2, 200, 5, 90, 'Компания К', 2);
+		('Водка "Абсолют"', 'Прозрачный алкогольный напиток', 0.7, 800, 2, NULL, 'Компания А', 4),
+		('Пиво "Жигулевское"', 'Светлый лагер', 0.5, 50, 6, 30, 'Компания Б', 4),
+		('Коньяк "Hennessy VS"', 'Выдержанный спиртной напиток', 0.75, 1500, 3, NULL, 'Компания В', 4),
+		('Шампанское "Moët & Chandon"', 'Игристое вино', 0.75, 2500, 2, NULL, 'Компания Г', 5),
+		('Виски "Johnnie Walker Black Label"', 'Выдержанный зерновой спирт', 0.7, 2000, 2, NULL, 'Компания Д', 4),
+		('Консервы "Сельдь в томатном соусе"', 'Консервированная рыба', 0.3, 100, 1, 365, 'Компания Е', 2),
+		('Сыр "Пармезан"', 'Твердый сыр, сырная корка', 0.25, 300, 5, 180, 'Компания Ж', 2),
+		('Пивной кег "Heineken"', 'Емкость для пива', 50, 5000, 7, 14, 'Компания З', 3),
+		('Лимонад "Fanta"', 'Газированный напиток, апельсиновый вкус', 1.5, 80, 8, NULL, 'Компания И', 4),
+		('Конфеты "Ferrero Rocher"', 'Шоколадные конфеты с орехами', 0.2, 200, 5, 90, 'Компания К', 2);
 
 INSERT INTO "Warehouse_spaces" ("name", "capacity", "storage_conditions_ID", "such_places_in_warehouse")
 	VALUES 
-	    ('Склад 1', 1000, 1, 10),
-	    ('Склад 2', 1500, 2, 8),
-	    ('Склад 3', 2000, 3, 12),
-	    ('Холодильник 1', 500, 4, 5),
-	    ('Холодильник 2', 750, 4, 7),
-	    ('Сухое хранилище 1', 3000, 5, 20),
-	    ('Сухое хранилище 2', 2500, 5, 18),
-	    ('Открытый склад 1', 2000, 6, 15), 
-	    ('Открытый склад 2', 3000, 6, 25),
-	    ('Хранилище для крупногабаритных товаров', 5000, 7, 3);
+		('Склад 1', 1000, 1, 10),
+		('Склад 2', 1500, 2, 8),
+		('Склад 3', 2000, 3, 12),
+		('Холодильник 1', 500, 4, 5),
+		('Холодильник 2', 750, 4, 7),
+		('Сухое хранилище 1', 3000, 5, 20),
+		('Сухое хранилище 2', 2500, 5, 18),
+		('Открытый склад 1', 2000, 6, 15), 
+		('Открытый склад 2', 3000, 6, 25),
+		('Хранилище для крупногабаритных товаров', 5000, 7, 3);
 
 INSERT INTO "Items_in_warehouse" ("item_id", "warehouse_place_id", "quantity_of_item", "days_until_end_storage")
 	VALUES 
-	    (1, 1, 100, 30),
-	    (2, 2, 50, 20),
-	    (3, 3, 200, 15),
-	    (4, 4, 80, 25),
-	    (5, 5, 120, 10),
-	    (6, 6, 150, 5),
-	    (7, 7, 70, 12),
-	    (8, 8, 90, 18),
-	    (9, 9, 110, 22),
-	    (10, 10, 40, 8);
+		(1, 1, 100, 30),
+		(2, 2, 50, 20),
+		(3, 3, 200, 15),
+		(4, 4, 80, 25),
+		(5, 5, 120, 10),
+		(6, 6, 150, 5),
+		(7, 7, 70, 12),
+		(8, 8, 90, 18),
+		(9, 9, 110, 22),
+		(10, 10, 40, 8);
 
 
 INSERT INTO "Menu_items" ("name", "price", "manafacture_ID")
 	VALUES 
-	    ('Стейк "New York Strip"', 2500, 1),
-	    ('Салат "Цезарь"', 500, 2),
-	    ('Паста "Карбонара"', 700, 3),
-	    ('Ролл "Филадельфия"', 800, 4),
-	    ('Бургер "Чизбургер"', 600, 5),
-	    ('Пицца "Маргарита"', 650, 6),
-	    ('Суп "Том Ям"', 400, 7),
-	    ('Суши "Унаги"', 900, 8),
-	    ('Омлет "Французский"', 300, 9),
-	    ('Десерт "Тирамису"', 450, 10);
+		('Стейк "New York Strip"', 2500, 1),
+		('Салат "Цезарь"', 500, 2),
+		('Паста "Карбонара"', 700, 3),
+		('Ролл "Филадельфия"', 800, 4),
+		('Бургер "Чизбургер"', 600, 5),
+		('Пицца "Маргарита"', 650, 6),
+		('Суп "Том Ям"', 400, 7),
+		('Суши "Унаги"', 900, 8),
+		('Омлет "Французский"', 300, 9),
+		('Десерт "Тирамису"', 450, 10);
 
 
 INSERT INTO "Menu_item_composition_container" ("item_ID", "menu_item_ID")
 	VALUES 
-	    (1, 1),
-	    (2, 2),
-	    (3, 3),
-	    (4, 4),
-	    (5, 5),
-	    (6, 6),
-	    (7, 7),
-	    (8, 8),
-	    (9, 9),
-	    (10, 10);
+		(1, 1),
+		(2, 2),
+		(3, 3),
+		(4, 4),
+		(5, 5),
+		(6, 6),
+		(7, 7),
+		(8, 8),
+		(9, 9),
+		(10, 10);
 
 INSERT INTO "Order_statuses" ("name")
 	VALUES 
@@ -452,19 +454,19 @@ INSERT INTO "Order_statuses" ("name")
 		('Неоплачен');
 
 
-INSERT INTO "Orders" ("date", "client_ID", "employee_ID", "status_ID")
+INSERT INTO "Orders" ("date", "client_ID", "employee_ID", "status_ID", "total")
 	VALUES 
-		('2024-05-01 10:00:00', 1, 1, 1),
-		('2024-05-02 10:00:00', 1, 1, 1),
-		('2024-05-02 11:30:00', 2, 2, 2),
-		('2024-05-03 12:45:00', 3, 3, 3),
-		('2024-05-04 14:15:00', 4, 4, 4),
-		('2024-05-05 16:20:00', 5, 5, 5),
-		('2024-05-06 09:00:00', 6, 6, 6),
-		('2024-05-07 17:30:00', 7, 7, 7),
-		('2024-05-08 13:00:00', 8, 8, 8),
-		('2024-05-09 15:45:00', 9, 9, 9),
-		('2024-05-10 18:00:00', 10, 10, 10);
+		('2024-05-01 10:00:00', 1, 1, 1, 1000),
+		('2024-05-01 10:00:00', 1, 1, 1, 1000),
+		('2024-05-02 11:30:00', 2, 2, 2, 1000),
+		('2024-05-03 12:45:00', 3, 3, 3, 1000),
+		('2024-05-05 14:15:00', 4, 4, 4, 1000),
+		('2024-05-05 16:20:00', 5, 5, 5, 1000),
+		('2024-05-06 09:00:00', 6, 6, 6, 1000),
+		('2024-05-07 17:30:00', 7, 7, 7, 1000),
+		('2024-05-08 13:00:00', 8, 8, 8, 1000),
+		('2024-05-09 15:45:00', 9, 9, 9, 1000),
+		('2024-05-10 18:00:00', 10, 10, 10, 1000);
 
 INSERT INTO "Order_line" ("order_ID", "menu_item_ID")
 	VALUES 
@@ -500,30 +502,32 @@ INSERT INTO "Expenses" ("storage_item_ID", "employee_id", "date", "element_quant
 		(NULL, 3, '2024-05-03', 500000000, 1000, 1),
 		(NULL, 4, '2024-05-04', 1, 1000, 1),
 		(NULL, 5, '2024-05-05', 1, 1000, 1),
-		(NULL, 6, '2024-05-06', -7, 1000, 1),
-		(NULL, 7, '2024-05-07', -2, 1000, 1),
-		(NULL, 8, '2024-05-08', 3, -2000, 1),
-		(NULL, 9, '2024-05-09', 6, -2000, 1),
-		(NULL, 10, '2024-05-10', 5, -1000, 1);
+		(NULL, 6, '2024-05-06', 7, 1000, 1),
+		(NULL, 7, '2024-05-07', 2, 1000, 1),
+		(NULL, 8, '2024-05-05', 3, 2000, 1),
+		(NULL, 9, '2024-05-09', 6, 2000, 1),
+		(NULL, 10, '2024-05-10', 5, 1000, 1);
 
 --Запросы для функциональных требований
 
 --Вести учет программы лояльности
---1. увеличивать количество потраченных денег в программе лояльности
+--1. Обновить уровень программы лояльности
+select * from "Loyalty_program_accounts";
+
 WITH spent AS (
 	SELECT 
-	    SUM(mi."price") total_spent,
+		SUM(mi."price") total_spent,
 		cl."ID" client_ID
 	FROM 
-	    "Orders" o
+		"Orders" o
 	JOIN 
-	    "Order_line" ol ON o."ID" = ol."order_ID"
+		"Order_line" ol ON o."ID" = ol."order_ID"
 	JOIN 
-	    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+		"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 	JOIN 
 		"Clients" cl ON cl."ID" = o."client_ID"
 	GROUP BY 
-	    cl."ID"
+		cl."ID"
 )
 UPDATE
 	"Loyalty_program_accounts"
@@ -534,36 +538,34 @@ FROM
 WHERE 
 	"client_ID" = spent.client_ID;
 
-select * from "Loyalty_program_accounts";
 
---2. увеличить уровень программы лойльности 
-WITH next_lvl AS (
-	SELECT 
-		lpa."ID" cl_ID,
-		lvl."price" price_for
-	FROM 
+--2. Обновить уровень программы лояльности
+WITH ranked_levels AS (
+	SELECT
+		lpa."ID",
+		lpa."money_spent",
+		lpv."ID" as new_lvl_ID,
+		ROW_NUMBER() OVER (PARTITION BY lpa."ID" ORDER BY lpv."price" DESC) as rank
+	FROM
 		"Loyalty_program_accounts" lpa
-	JOIN 
-		"Loyalty_program_levels" lvl
-		ON lpa."lvl_ID" + 1 = lvl."ID"
+	JOIN
+		"Loyalty_program_levels" lpv ON lpa."money_spent" >= lpv."price"
 )
 UPDATE
-	"Loyalty_program_accounts"
-SET 
-	"lvl_ID" = "lvl_ID" + 1
-FROM 
-	next_lvl
-WHERE 
-	"client_ID" = next_lvl.cl_ID AND "money_spent" >= next_lvl.price_for;
-
-select * from "Loyalty_program_accounts";
+	"Loyalty_program_accounts" lpa
+SET
+	"lvl_ID" = rl.new_lvl_ID
+FROM
+	ranked_levels rl
+WHERE
+	lpa."ID" = rl."ID" AND rl.rank = 1;
 
 --Получить выписку складского учета
 SELECT
 	si."name" as item_name, SUM(iw."quantity_of_item") as quanity
 FROM 
 	"Items_in_warehouse" iw
-JOIN
+JOINa
 	"Storage_items" si ON si."ID" = iw."item_id"
 GROUP BY
 	si."name";
@@ -606,8 +608,55 @@ JOIN
 JOIN 
 	max_mic ON max_mic.mx = mic.mi_count;
 
---Узнать доходы, расходы, прибыль за определенный период (допустим месяц).
+--(пример) Узнать доходы, расходы, прибыль за определенный период (допустим месяц).
+--Расходы
+WITH expenses as (
+		SELECT 
+			SUM("total") total
+		FROM 
+			"Expenses"
+		WHERE "date" BETWEEN (NOW() - INTERVAL '1 month') AND NOW()
+),
+--Доходы
+income as (
+	SELECT 
+		SUM(ord."total") total
+	FROM 
+		"Orders" ord
+)
+--Прибыль
+SELECT 
+	e.total AS "expenses",
+	i.total AS "income",
+	(i.total - e.total) AS profit
+FROM 
+	expenses e
+CROSS JOIN 
+	income i;
 
+-- (пример) Узнать посещаемость за определенный период (предыдущей месяц).
+WITH unique_orders AS (
+	SELECT 
+		"client_ID",     
+		EXTRACT(YEAR FROM "date") "year",
+		EXTRACT(MONTH FROM "date") "day",
+		EXTRACT(DAY FROM "date") "month"
+	FROM 
+		"Orders" ord
+	GROUP BY
+		"client_ID",     
+		EXTRACT(YEAR FROM "date"),
+		EXTRACT(MONTH FROM "date"),
+		EXTRACT(DAY FROM "date")
+)
+SELECT 
+	COUNT(*) attendance
+FROM 
+	unique_orders
+WHERE
+	"month" = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month');
+	
+	
 --Запросы из заданий
 --UPDATE
 --1
@@ -904,19 +953,19 @@ SELECT INTO или INSERT SELECT, что поддерживается СУБД (
 */
 -- Создание тестовой таблицы для клиентов
 CREATE TABLE "Test_Clients" (
-    "ID" SERIAL PRIMARY KEY,
-    "phone_number" VARCHAR(15),
-    "full_name" VARCHAR(100)
+	"ID" SERIAL PRIMARY KEY,
+	"phone_number" VARCHAR(15),
+	"full_name" VARCHAR(100)
 );
 
 -- Создание тестовой таблицы для сотрудников
 CREATE TABLE "Test_Employees" (
-    "ID" SERIAL PRIMARY KEY,
-    "full_name" VARCHAR(100),
-    "job_title_ID" INT,
-    "overtime_hours" INT,
-    "final_payment" DECIMAL,
-    "payment_date" DATE
+	"ID" SERIAL PRIMARY KEY,
+	"full_name" VARCHAR(100),
+	"job_title_ID" INT,
+	"overtime_hours" INT,
+	"final_payment" DECIMAL,
+	"payment_date" DATE
 );
 --43 Копирование данных из таблицы Clients в Test_Clients
 INSERT INTO 
@@ -1107,59 +1156,59 @@ ORDER BY
 	order_count DESC;
 --63 Подсчитать общую сумму заказов для каждого клиента и отсортировать по сумме заказов по убыванию
 SELECT 
-    cl."full_name", 
-    SUM(mi."price") AS total_spent
+	cl."full_name", 
+	SUM(mi."price") AS total_spent
 FROM 
-    "Orders" o
+	"Orders" o
 JOIN 
-    "Order_line" ol ON o."ID" = ol."order_ID"
+	"Order_line" ol ON o."ID" = ol."order_ID"
 JOIN 
-    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+	"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 JOIN 
 	"Clients" cl ON cl."ID" = o."client_ID"
 GROUP BY 
-    cl."full_name"
+	cl."full_name"
 ORDER BY 
-    total_spent DESC;
+	total_spent DESC;
 --64 Подсчитать среднюю сумму заказов для каждого клиента и отсортировать по средней сумме заказов по возрастанию
 SELECT 
-    cl."full_name", 
-    (SUM(mi."price") 
+	cl."full_name", 
+	(SUM(mi."price") 
 	/ (SELECT COUNT(*) 
 	   FROM "Orders" o
 	   WHERE o."client_ID" = cl."ID"))  
 	AS avg_spend
 FROM 
-    "Orders" o
+	"Orders" o
 JOIN 
-    "Order_line" ol ON o."ID" = ol."order_ID"
+	"Order_line" ol ON o."ID" = ol."order_ID"
 JOIN 
-    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+	"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 JOIN 
 	"Clients" cl ON cl."ID" = o."client_ID"
 GROUP BY 
-    cl."full_name", cl."ID"
+	cl."full_name", cl."ID"
 ORDER BY 
-    avg_spend DESC;
+	avg_spend DESC;
 --65 Найти максимальную сумму заказа для каждого клиента и отсортировать по максимальной сумме заказа по убыванию
 SELECT
 	op."full_name",
 	MAX(op.order_price) AS max_order_price
 FROM (
 		SELECT 
-		    cl."full_name", 
+			cl."full_name", 
 			o."ID" "order",
 			SUM(mi."price") order_price
 		FROM 
-		    "Orders" o
+			"Orders" o
 		JOIN 
-		    "Order_line" ol ON o."ID" = ol."order_ID"
+			"Order_line" ol ON o."ID" = ol."order_ID"
 		JOIN 
-		    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+			"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 		JOIN 
 			"Clients" cl ON cl."ID" = o."client_ID"
 		GROUP BY 
-		    cl."full_name", o."ID"
+			cl."full_name", o."ID"
 	) AS op
 GROUP BY
 	op."full_name"
@@ -1171,19 +1220,19 @@ SELECT
 	min(op.order_price) AS min_order_price
 FROM (
 		SELECT 
-		    cl."full_name", 
+			cl."full_name", 
 			o."ID" "order",
 			SUM(mi."price") order_price
 		FROM 
-		    "Orders" o
+			"Orders" o
 		JOIN 
-		    "Order_line" ol ON o."ID" = ol."order_ID"
+			"Order_line" ol ON o."ID" = ol."order_ID"
 		JOIN 
-		    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+			"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 		JOIN 
 			"Clients" cl ON cl."ID" = o."client_ID"
 		GROUP BY 
-		    cl."full_name", o."ID"
+			cl."full_name", o."ID"
 	) AS op
 GROUP BY
 	op."full_name"
@@ -1200,40 +1249,40 @@ HAVING
 	COUNT(*) > 5;
 --68 Подсчитать общую сумму заказов для каждого клиента и отфильтровать клиентов, у которых общая сумма заказов превышает 10000
 SELECT 
-    cl."full_name", 
-    SUM(mi."price") AS total_spent
+	cl."full_name", 
+	SUM(mi."price") AS total_spent
 FROM 
-    "Orders" o
+	"Orders" o
 JOIN 
-    "Order_line" ol ON o."ID" = ol."order_ID"
+	"Order_line" ol ON o."ID" = ol."order_ID"
 JOIN 
-    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+	"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 JOIN 
 	"Clients" cl ON cl."ID" = o."client_ID"
 GROUP BY 
-    cl."full_name"
+	cl."full_name"
 HAVING 
 	SUM(mi."price") > 1000
 ORDER BY 
-    total_spent DESC;
+	total_spent DESC;
 --69 Подсчитать среднюю сумму заказов для каждого клиента и отфильтровать клиентов, у которых средняя сумма заказа больше 1000
 SELECT 
-    cl."full_name", 
-    (SUM(mi."price") 
+	cl."full_name", 
+	(SUM(mi."price") 
 	/ (SELECT COUNT(*) 
 	   FROM "Orders" o
 	   WHERE o."client_ID" = cl."ID"))  
 	AS avg_spend
 FROM 
-    "Orders" o
+	"Orders" o
 JOIN 
-    "Order_line" ol ON o."ID" = ol."order_ID"
+	"Order_line" ol ON o."ID" = ol."order_ID"
 JOIN 
-    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+	"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 JOIN 
 	"Clients" cl ON cl."ID" = o."client_ID"
 GROUP BY 
-    cl."full_name", cl."ID"
+	cl."full_name", cl."ID"
 HAVING
 	(SUM(mi."price") 
 	/ (SELECT COUNT(*) 
@@ -1241,7 +1290,7 @@ HAVING
 	   WHERE o."client_ID" = cl."ID"))
 	> 1000
 ORDER BY 
-    avg_spend DESC;
+	avg_spend DESC;
 --70 Подсчитать количество заказов для каждого клиента и вывести топ 5 клиентов с наибольшим количеством заказов
 SELECT 
 	"client_ID", COUNT(*) AS order_count
@@ -1254,24 +1303,24 @@ ORDER BY
 LIMIT 5;
 --71 Подсчитать среднюю сумму заказов для каждого клиента и вывести топ 5 клиентов с наибольшей средней суммой заказа
 SELECT 
-    cl."full_name", 
-    (SUM(mi."price") 
+	cl."full_name", 
+	(SUM(mi."price") 
 	/ (SELECT COUNT(*) 
 	   FROM "Orders" o
 	   WHERE o."client_ID" = cl."ID"))  
 	AS avg_spend
 FROM 
-    "Orders" o
+	"Orders" o
 JOIN 
-    "Order_line" ol ON o."ID" = ol."order_ID"
+	"Order_line" ol ON o."ID" = ol."order_ID"
 JOIN 
-    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+	"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 JOIN 
 	"Clients" cl ON cl."ID" = o."client_ID"
 GROUP BY 
-    cl."full_name", cl."ID"
+	cl."full_name", cl."ID"
 ORDER BY 
-    avg_spend DESC
+	avg_spend DESC
 LIMIT 5;
 --72 Найти максимальную сумму заказа для каждого клиента и вывести топ 5 клиентов с наибольшей максимальной суммой заказа
 SELECT
@@ -1279,19 +1328,19 @@ SELECT
 	MAX(op.order_price) AS max_order_price
 FROM (
 		SELECT 
-		    cl."full_name", 
+			cl."full_name", 
 			o."ID" "order",
 			SUM(mi."price") order_price
 		FROM 
-		    "Orders" o
+			"Orders" o
 		JOIN 
-		    "Order_line" ol ON o."ID" = ol."order_ID"
+			"Order_line" ol ON o."ID" = ol."order_ID"
 		JOIN 
-		    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+			"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 		JOIN 
 			"Clients" cl ON cl."ID" = o."client_ID"
 		GROUP BY 
-		    cl."full_name", o."ID"
+			cl."full_name", o."ID"
 	) AS op
 GROUP BY
 	op."full_name"
@@ -1304,19 +1353,19 @@ SELECT
 	MIN(op.order_price) AS min_order_price
 FROM (
 		SELECT 
-		    cl."full_name", 
+			cl."full_name", 
 			o."ID" "order",
 			SUM(mi."price") order_price
 		FROM 
-		    "Orders" o
+			"Orders" o
 		JOIN 
-		    "Order_line" ol ON o."ID" = ol."order_ID"
+			"Order_line" ol ON o."ID" = ol."order_ID"
 		JOIN 
-		    "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+			"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 		JOIN 
 			"Clients" cl ON cl."ID" = o."client_ID"
 		GROUP BY 
-		    cl."full_name", o."ID"
+			cl."full_name", o."ID"
 	) AS op
 GROUP BY
 	op."full_name"
@@ -1352,19 +1401,19 @@ SELECT
 FROM 
 	"Employees" e
 WHERE EXISTS (
-    SELECT 1
-    FROM "Orders" o
-    WHERE o."employee_ID" = e."ID"
-    GROUP BY o."employee_ID"
+	SELECT 1
+	FROM "Orders" o
+	WHERE o."employee_ID" = e."ID"
+	GROUP BY o."employee_ID"
 );
 --77 Выбирает всех клиентов, которые сделали более одного заказа
 SELECT c."full_name"
 FROM "Clients" c
 WHERE c."ID" = ALL (
-    SELECT o."client_ID"
-    FROM "Orders" o
-    GROUP BY o."client_ID"
-    HAVING COUNT(o."ID") > 1
+	SELECT o."client_ID"
+	FROM "Orders" o
+	GROUP BY o."client_ID"
+	HAVING COUNT(o."ID") > 1
 );
 --78 Выбирает всех сотрудников, которые обработали более пяти заказов
 SELECT 
@@ -1372,10 +1421,10 @@ SELECT
 FROM 
 	"Employees" e
 WHERE e."ID" = ANY (
-    SELECT o."employee_ID"
-    FROM "Orders" o
-    GROUP BY o."employee_ID"
-    HAVING COUNT(o."ID") > 5
+	SELECT o."employee_ID"
+	FROM "Orders" o
+	GROUP BY o."employee_ID"
+	HAVING COUNT(o."ID") > 5
 );
 --79 Запрос выбирает все элементы меню, которые были заказаны хотя бы один раз
 SELECT 
@@ -1383,11 +1432,11 @@ SELECT
 FROM 
 	"Menu_items" mi
 WHERE EXISTS (
-    SELECT 1
-    FROM "Order_line" ol
-    JOIN "Orders" o ON ol."order_ID" = o."ID"
-    WHERE ol."menu_item_ID" = mi."ID"
-    GROUP BY ol."menu_item_ID"
+	SELECT 1
+	FROM "Order_line" ol
+	JOIN "Orders" o ON ol."order_ID" = o."ID"
+	WHERE ol."menu_item_ID" = mi."ID"
+	GROUP BY ol."menu_item_ID"
 );
 --80 Выбирает все должности, у которых зарплата выше среднего окончательного платежа всех сотрудников по каждой должности
 SELECT 
@@ -1395,9 +1444,9 @@ SELECT
 FROM 
 	"Job_titles" j
 WHERE j."salary" > ALL (
-    SELECT AVG(e."final_payment")
-    FROM "Employees" e
-    GROUP BY e."job_titel_ID"
+	SELECT AVG(e."final_payment")
+	FROM "Employees" e
+	GROUP BY e."job_titel_ID"
 );
 
 
@@ -1424,10 +1473,10 @@ GROUP BY
 --83 Получить JSON массив с именами сотрудников и их должностями
 SELECT 
 	JSON_AGG(
-	    JSON_BUILD_OBJECT(
-	        'full_name', e."full_name",
-	        'job_title', jt."name"
-	    )
+		JSON_BUILD_OBJECT(
+			'full_name', e."full_name",
+			'job_title', jt."name"
+		)
 	) AS employees_info
 FROM 
 	"Employees" e
@@ -1458,91 +1507,91 @@ GROUP BY
 --Запросы с WITH (2-3 шт.)
 --86 Запрос для подсчета общего числа часов переработки сотрудников и их общей зарплаты с учетом переработок
 WITH Overtime AS (
-    SELECT
-        e."ID",
-        e."full_name",
-        e."overtime_hours",
-        jt."salary",
-        (e."overtime_hours" * 1.5 * jt."salary" / 160) AS overtime_payment
-    FROM
-        "Employees" e
-    JOIN
-        "Job_titles" jt ON e."job_titel_ID" = jt."ID"
+	SELECT
+		e."ID",
+		e."full_name",
+		e."overtime_hours",
+		jt."salary",
+		(e."overtime_hours" * 1.5 * jt."salary" / 160) AS overtime_payment
+	FROM
+		"Employees" e
+	JOIN
+		"Job_titles" jt ON e."job_titel_ID" = jt."ID"
 )
 SELECT
-    full_name,
-    overtime_hours,
-    salary,
-    overtime_payment,
-    (salary + overtime_payment) AS total_salary_with_overtime
+	full_name,
+	overtime_hours,
+	salary,
+	overtime_payment,
+	(salary + overtime_payment) AS total_salary_with_overtime
 FROM
-    Overtime;
+	Overtime;
 --87 Запрос для получения списка клиентов, которые потратили больше определенной суммы денег в программе лояльности, и информации об их текущем уровне
 WITH HighSpenders AS (
-    SELECT
-        c.full_name,
-        lpa.money_spent,
-        lpl.name AS level_name,
-        lpl.discount
-    FROM
-        "Clients" AS c
-    JOIN
-        "Loyalty_program_accounts" lpa ON c."ID" = lpa."client_ID"
-    JOIN
-        "Loyalty_program_levels" lpl ON lpa."lvl_ID" = lpl."ID"
-    WHERE
-        lpa.money_spent > 3000
+	SELECT
+		c.full_name,
+		lpa.money_spent,
+		lpl.name AS level_name,
+		lpl.discount
+	FROM
+		"Clients" AS c
+	JOIN
+		"Loyalty_program_accounts" lpa ON c."ID" = lpa."client_ID"
+	JOIN
+		"Loyalty_program_levels" lpl ON lpa."lvl_ID" = lpl."ID"
+	WHERE
+		lpa.money_spent > 3000
 )
 SELECT
-    full_name,
-    money_spent,
-    level_name,
-    discount
+	full_name,
+	money_spent,
+	level_name,
+	discount
 FROM
-    HighSpenders;
+	HighSpenders;
 --88 Запрос для получения информации о заказах, их статусе и списке заказанных блюд
 WITH OrderDetails AS (
-    SELECT
-        o."ID" AS order_id,
-        o."date",
-        os."name" AS status,
-        e."full_name" AS employee_name,
-        c."full_name" AS client_name
-    FROM
-        "Orders" o
-    JOIN
-        "Order_statuses" os ON o."status_ID" = os."ID"
-    JOIN
-        "Employees" e ON o."employee_ID" = e."ID"
-    JOIN
-        "Clients" c ON o."client_ID" = c."ID"
+	SELECT
+		o."ID" AS order_id,
+		o."date",
+		os."name" AS status,
+		e."full_name" AS employee_name,
+		c."full_name" AS client_name
+	FROM
+		"Orders" o
+	JOIN
+		"Order_statuses" os ON o."status_ID" = os."ID"
+	JOIN
+		"Employees" e ON o."employee_ID" = e."ID"
+	JOIN
+		"Clients" c ON o."client_ID" = c."ID"
 )
 , OrderItems AS (
-    SELECT
-        ol."order_ID" order_id,
-        mi."name" AS menu_item_name,
-        mi."price"
-    FROM
-        "Order_line" ol
-    JOIN
-        "Menu_items" mi ON ol."menu_item_ID" = mi."ID"
+	SELECT
+		ol."order_ID" order_id,
+		mi."name" AS menu_item_name,
+		mi."price"
+	FROM
+		"Order_line" ol
+	JOIN
+		"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
 )
 SELECT
-    od.order_id,
-    od.client_name,
+	od.order_id,
+	od.client_name,
 	od.employee_name employees_names,
 	ARRAY_AGG(oi.menu_item_name) items_names,
-    od.date,
-    od.status,
-    SUM(oi.price)
+	od.date,
+	od.status,
+	SUM(oi.price)
 FROM
-    OrderDetails od
+	OrderDetails od
 JOIN
-    OrderItems oi ON od.order_id = oi.order_id
+	OrderItems oi ON od.order_id = oi.order_id
 GROUP BY
 	od.client_name, od.order_id, od.employee_name, od.date, od.status
 ORDER BY
-    od.order_id;
+	od.order_id;
 
 
 /*
