@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS "Employees" (
 	"payment_date" date NOT NULL
 );
 
+
 --таблица должностей
 CREATE TABLE IF NOT EXISTS "Job_titles" (
 	"ID" serial PRIMARY KEY,
@@ -111,7 +112,7 @@ CREATE TABLE IF NOT EXISTS "Orders" (
 );
 CREATE INDEX idx_orders_date ON "Orders" ("date");
 --Один клиент ко многим заказам
-CREATE INDEX idx_ordres_client ON "Orders"("clint_ID", "ID");
+CREATE INDEX idx_ordres_client ON "Orders"("client_ID", "ID");
 
 --таблица статусов заказов
 CREATE TABLE IF NOT EXISTS "Order_statuses" (
@@ -581,7 +582,7 @@ WITH unique_orders AS (
 		EXTRACT(MONTH FROM "date") "month"
 	FROM 
 		"Orders" ord
-	GROUP BY
+	GROUP BY	
 		"client_ID",     
 		"date"
 )
@@ -591,7 +592,270 @@ FROM
 	unique_orders
 WHERE
 	EXTRACT(MONTH FROM NOW()) - 1 = "month";
-	
+
+
+--Процедуры 
+--1. Эта процедура изменяет зарплату на должности и следом изменяет зарплату сотрудников на должности.
+CREATE PROCEDURE update_employee_salary(
+    IN job_title_name VARCHAR,
+    IN new_salary INTEGER
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    cur_ID INTEGER;
+    jt_id INTEGER;
+ 	new_final_payment INTEGER;
+BEGIN
+    -- Обновление зарплаты в таблице должностей
+    UPDATE "Job_titles" jt
+    SET "salary" = new_salary
+    WHERE "name" = job_title_name;
+
+    -- Обновление итоговой оплаты в таблице сотрудников
+    UPDATE "Employees" e
+    SET "final_payment" = jt."salary"
+    FROM "Job_titles" jt
+    WHERE jt."ID" = e."job_titel_ID";
+
+    -- Получение ID должности
+    SELECT jt."ID" INTO jt_id
+    FROM "Job_titles" jt
+    WHERE jt."name" = job_title_name;
+
+    -- Обновление итоговой оплаты для каждого сотрудника с указанной должностью
+    FOR cur_ID IN (SELECT e."ID" FROM "Employees" e WHERE e."job_titel_ID" = jt_id) LOOP
+		SELECT  calculate_final_payment(cur_ID) INTO new_final_payment;
+        UPDATE "Employees"
+		SET "final_payment" = new_final_payment
+		WHERE "ID" = cur_ID;
+    END LOOP;
+END;
+$$;
+
+-- Вызов процедуры
+CALL update_employee_salary('Менеджер бара', 35001);
+
+
+--2. Эта процедура добавляет нового клиента, если номер телефона не существует в базе данных.
+CREATE PROCEDURE add_new_client(
+    IN phone_numb VARCHAR,
+    IN full_name TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM "Clients" WHERE "phone_number" = phone_numb) THEN
+        INSERT INTO "Clients" ("phone_number", "full_name")
+        VALUES (phone_numb, full_name);
+    END IF;
+END;
+$$;
+
+
+-- Вызов процедуры
+CALL add_new_client('123-456-7890', 'John Doe');
+
+
+--3. Эта процедура обновляет уровень программы лояльности клиента на основе потраченных денег
+CREATE PROCEDURE update_loyalty_level(
+    IN client_id INTEGER
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+   	mon INTEGER;
+    new_level_id INTEGER;
+BEGIN
+    SELECT "money_spent" INTO mon
+    FROM "Loyalty_program_accounts"
+    WHERE "client_ID" = client_id;
+
+    FOR new_level_id IN 1..(SELECT COUNT(*) FROM "Loyalty_program_levels") LOOP
+        IF mon >= (SELECT "price" FROM "Loyalty_program_levels" WHERE "ID" = new_level_id) THEN
+            UPDATE "Loyalty_program_accounts"
+            SET "lvl_ID" = new_level_id
+            WHERE "client_ID" = client_id;
+        END IF;
+    END LOOP;
+END;
+$$;
+
+-- Вызов процедуры
+CALL update_loyalty_level(2107);
+
+
+-- Функции
+
+--1. Эта функция возвращает общее количество заказов для заданного клиента
+CREATE OR REPLACE FUNCTION get_client_order_count(client_id INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    order_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO order_count
+    FROM "Orders"
+    WHERE "client_ID" = client_id;
+    RETURN order_count;
+END;
+$$;
+
+
+-- Вызов функции
+SELECT get_client_order_count(1);
+
+--2.  Эта функция вычисляет итоговую оплату сотрудника с учетом сверхурочных минут
+CREATE OR REPLACE FUNCTION calculate_final_payment(employee_id INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    base_salary INTEGER;
+    overtime_minutes INTEGER;
+    overtime_payment INTEGER;
+    final_payment INTEGER;
+BEGIN
+    SELECT jt.salary, e.overtime_minutes INTO base_salary, overtime_minutes
+    FROM "Employees" e
+    JOIN "Job_titles" jt ON e."job_titel_ID" = jt."ID"
+    WHERE e."ID" = employee_id;
+
+    overtime_payment := (overtime_minutes / 60) * (base_salary / 160); -- предполагая, что 160 часов в месяц
+    final_payment := base_salary + overtime_payment;
+    RETURN final_payment;
+END;
+$$;
+
+-- Вызов функции
+SELECT calculate_final_payment(1);
+
+
+--3.  Эта функция возвращает информацию о клиенте (ID, номер телефона и полное имя)
+CREATE OR REPLACE FUNCTION get_client_info(client_id INTEGER)
+RETURNS TABLE(id INTEGER, phone_number VARCHAR, full_name TEXT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT cl."ID", cl."phone_number", cl."full_name"
+    FROM "Clients" cl
+    WHERE "ID" = client_id;
+END;
+$$;
+
+-- Вызов функции
+SELECT * FROM get_client_info(1);
+
+-- Представления
+/*
+1. Список сотрудников с их должностями и зарплатами
+Это представление объединяет данные из таблиц Employees и Job_titles, 
+чтобы предоставить информацию о сотрудниках, их должностях и зарплатах.
+*/
+
+CREATE VIEW EmployeeJobDetails AS
+SELECT 
+    e."ID" AS employee_id,
+    e."full_name" AS employee_name,
+    j."name" AS job_title,
+    j."salary" AS job_salary
+FROM 
+    "Employees" e
+JOIN 
+    "Job_titles" j ON e."job_titel_ID" = j."ID";
+
+SELECT * FROM EmployeeJobDetails LIMIT 5;
+
+
+/*
+2. Заказы клиентов с деталями
+Это представление объединяет данные из таблиц Orders, Clients и Order_statuses, 
+чтобы показать информацию о заказах клиентов, их статусах и датах.
+*/
+CREATE VIEW ClientOrderDetails AS
+SELECT 
+    o."ID" AS order_id,
+    o."date" AS order_date,
+    c."full_name" AS client_name,
+    os."name" AS order_status,
+    o."total" AS order_total
+FROM 
+    "Orders" o
+LEFT JOIN 
+    "Clients" c ON o."client_ID" = c."ID"
+JOIN 
+    "Order_statuses" os ON o."status_ID" = os."ID";
+
+SELECT * FROM ClientOrderDetails LIMIT 5;
+
+/*
+3. Затраты по типам и сотрудникам
+Это представление объединяет данные из таблиц Expenses, Types_of_expenditure и
+Employees, чтобы предоставить информацию о затратах по типам и сотрудникам, которые их сделали.
+*/
+CREATE VIEW ExpenseDetails AS
+SELECT 
+    ex."ID" AS expense_id,
+    ex."date" AS expense_date,
+    ex."element_quantity" AS quantity,
+    ex."total" AS total_amount,
+    t."name" AS expense_type,
+    e."full_name" AS employee_name
+FROM 
+    "Expenses" ex
+JOIN 
+    "Types_of_expenditure" t ON ex."type_ID" = t."ID"
+LEFT JOIN 
+    "Employees" e ON ex."employee_id" = e."ID";
+
+SELECT * FROM ExpenseDetails LIMIT 5;
+
+
+--Тригер
+
+/*
+Тригер срабатывает при изменении столбца overtime_minutes
+в таблице Employees, и изменят значение final_payment в
+зависимости от нового значения overtime_minutes;
+*/
+CREATE OR REPLACE FUNCTION update_final_payment()
+RETURNS TRIGGER AS $$
+DECLARE
+    base_salary integer;
+    overtime_bonus integer := 1000; -- фиксированная сумма за 60 минут сверхурочной работы
+BEGIN
+    -- Получаем базовую зарплату из таблице Job_titles
+    SELECT "salary" INTO base_salary
+    FROM "Job_titles"
+    WHERE "ID" = NEW."job_titel_ID";
+
+    -- Рассчитываем итоговую оплату
+    NEW."final_payment" := base_salary + (NEW."overtime_minutes" / 60) * overtime_bonus;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_update_overtime_minutes
+BEFORE UPDATE OF "overtime_minutes" ON "Employees"
+FOR EACH ROW
+WHEN (OLD."overtime_minutes" IS DISTINCT FROM NEW."overtime_minutes")
+EXECUTE FUNCTION update_final_payment();
+
+
+update "Employees" set "overtime_minutes" = 1000 where "ID" = 1;
+
+select * from "Employees" order by "ID" limit 2;
+
+
+
+
+
+
+
+
 
 
 
