@@ -234,7 +234,8 @@ ALTER TABLE "Expenses"
 	--многие-к-одному
 	ADD CONSTRAINT "Expenses_fk2"
 		FOREIGN KEY ("employee_id")
-		REFERENCES "Employees"("ID"),
+		REFERENCES "Employees"("ID")
+		ON DELETE SET NULL,
 	--многие-к-одному
 	ADD CONSTRAINT "Expenses_fk3"
 		FOREIGN KEY ("storage_item_ID")
@@ -565,7 +566,7 @@ SELECT
 	si."name" as item_name, SUM(iw."quantity_of_item") as quanity
 FROM 
 	"Items_in_warehouse" iw
-JOINa
+JOIN
 	"Storage_items" si ON si."ID" = iw."item_id"
 GROUP BY
 	si."name";
