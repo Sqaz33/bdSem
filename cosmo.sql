@@ -254,25 +254,27 @@ CREATE TABLE booster_rockets (
 );
 
 -- Таблица с типами космодромов
-CREATE TABLE types_cosmodromes (
+CREATE TABLE types_cosmodrome (
     id_type_cosmodrome serial PRIMARY KEY,
     title VARCHAR(80) NOT NULL
 );
 
 -- Таблица с координатами космодромов
 CREATE TABLE locations (
-	id_location serial PRIMARY KEY,
-    latitude DECIMAL(2, 2) NOT NULL,
-    longitude DECIMAL(2, 2) NOT NULL
+	id_location serial,
+    latitude DECIMAL(4, 4) NOT NULL,
+    longitude DECIMAL(4, 4) NOT NULL
 ); 
+
+alter table locations add constraint "locations_pk" primary key ("id_location");
 
 INSERT INTO locations (latitude, longitude)
 VALUES 
-    (55.75, 37.61),  -- Moscow
-    (48.85, 2.35),   -- Paris
-    (40.71, -74.01), -- New York
-    (34.05, -118.24),-- Los Angeles
-    (35.68, 139.76); -- Tokyo
+    (0.75, 0.61),  -- Moscow
+    (0.85, 0.35),   -- Paris
+    (0.71, -0.01), -- New York
+    (0.05, -0.24),-- Los Angeles
+    (0.68, 0.76); -- Tokyo
 
 --1. Добавление столбца
 ALTER TABLE locations ADD COLUMN "time_zone" varchar(10);
@@ -290,25 +292,28 @@ ALTER TABLE locations ADD CONSTRAINT "locations_fk"
 	FOREIGN KEY ("tst_c" )
 		REFERENCES types_cosmodrome(id_type_cosmodrome);
 --5. Добавление, изменение, удаление первичного ключа
-ALTER TABLE locations ADD COLUMN "test_key1" integer;
-ALTER TABLE locations ADD COLUMN "test_key2" integer;
+ALTER TABLE locations ADD COLUMN "test_key1" serial;
+ALTER TABLE locations ADD COLUMN "test_key2" serial;
+ALTER TABLE locations DROP CONSTRAINT "locations_pk";
 ALTER TABLE locations ADD CONSTRAINT "locations_pk1"
 	PRIMARY KEY ("test_key1");
 ALTER TABLE locations DROP CONSTRAINT "locations_pk1";
 ALTER TABLE locations ADD CONSTRAINT "locations_pk2" PRIMARY KEY ("test_key2");
 ALTER TABLE locations DROP CONSTRAINT "locations_pk2";
---6. Добавление, изменение, удаление первичного ключа
-ALTER TABLE employees ADD CONSTRAINT "test_more_0" CHECK ("test_key2" > 0);
-ALTER TABLE employees ADD CONSTRAINT "test_uniq" UNIQUE ("test_key2");
+--6. бавление, изменение, удаление другого ограничения (unique, check и т.д.)
+ALTER TABLE locations ADD CONSTRAINT "test_more_0" CHECK ("test_key2" > 0);
+ALTER TABLE locations ADD CONSTRAINT "test_uniq" UNIQUE ("test_key2");
+
+create table tst ("test_key1" int, "test_key2" int);
 
 --RENAME скрипты
 --Переименование таблицы
-ALTER TABLE locations2 RENAME TO locations2;
+ALTER TABLE tst RENAME TO tst2;
 --Переименование атрибутов
-ALTER TABLE locations RENAME COLUMN "test_key1" TO "test1";
-ALTER TABLE locations RENAME COLUMN "test_key2" TO "test2";
+ALTER TABLE tst2 RENAME COLUMN "test_key1" TO "test1";
+ALTER TABLE tst2 RENAME COLUMN "test_key2" TO "test2";
 --Удаление атрибутов
-DROP TABLE locations;
+DROP TABLE tst2;
 -- Таблица со статусами космодромов 
 CREATE TABLE statuses_cosmodromes (
 	id_status_cosmodrome serial PRIMARY KEY,
@@ -320,6 +325,8 @@ ALTER TABLE locations ADD COLUMN "test_column" varchar(10);
 ALTER TABLE locations RENAME COLUMN "test_column" TO "test_c";
 ALTER TABLE locations DROP COLUMN "test_c";
 
+create table types_cosmodromes (id_type_cosmodrome serial primary key);
+alter table locations add constraint "locations_pk" primary key (id_location);
 
 -- Таблица с космодромами
 CREATE TABLE cosmodromes (
@@ -360,13 +367,13 @@ CREATE TABLE missions_statuses (
     title VARCHAR(50) NOT NULL
 );
 
-INSERT INTO mission_statuses(title)
+INSERT INTO missions_statuses(title)
 	VALUES
-		("start"),
-		("stop"),
-		("end"),
-		("sdfv3234"),
-		("sjo34233");
+		('start'),
+		('stop'),
+		('end'),
+		('sdfv3234'),
+		('sjo34233');
 
 -- Таблица с миссиями
 CREATE TABLE missions (
@@ -420,13 +427,6 @@ ALTER TABLE space_launches_has_staff
 	ADD CONSTRAINT "space_launches_has_staff_fk2"
 		FOREIGN KEY (id_space_launche)
 			REFERENCES space_launches(id_space_launche);
-
-
-
-
-
-
-
 
 
 
