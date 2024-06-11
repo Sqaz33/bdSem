@@ -242,57 +242,57 @@ INSERT INTO "Item_types" ("name", "consamable")
 
 -- копирую 
 COPY "Clients"("full_name", "phone_number")
-FROM 'D:\bdSem\Clients.csv'
+FROM 'D:\bdSem\csv\Clients.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Loyalty_program_accounts"("money_spent", "client_ID", "lvl_ID")
-FROM 'D:\bdSem\lpa.csv'
+FROM 'D:\bdSem\csv\lpa.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Employees"("full_name", "job_titel_ID", "overtime_minutes", "final_payment", "payment_date")
-FROM 'D:\bdSem\employees.csv'
+FROM 'D:\bdSem\csv\employees.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Menu_items"("name", "price", "manafacture_ID")
-FROM 'D:\bdSem\menu.csv'
+FROM 'D:\bdSem\csv\menu.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Storage_items"("name", "characteristics", "volume", "price","storage_condition_ID",  "shell_life_in_days", "supplier", "item_type_ID")
-FROM 'D:\bdSem\storage_items.csv'
+FROM 'D:\bdSem\csv\storage_items.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Menu_item_composition_container"("item_ID", "menu_item_ID", "quantity")
-FROM 'D:\bdSem\Menu_item_composition_container.csv'
+FROM 'D:\bdSem\csv\csv\Menu_item_composition_container.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Orders"("date", "client_ID", "employee_ID", "status_ID", "total")
-FROM 'D:\bdSem\Orders.csv'
+FROM 'D:\bdSem\csv\Orders.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Order_line"("order_ID", "menu_item_ID", "quantity")
-FROM 'D:\bdSem\Order_line.csv'
+FROM 'D:\bdSem\csv\Order_line.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Warehouse_spaces"("name", "capacity", "storage_condition_ID", "such_places_in_warehouse")
-FROM 'D:\bdSem\Warehouse_spaces.csv'
+FROM 'D:\bdSem\csv\Warehouse_spaces.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Items_in_warehouse"("item_id", "warehouse_place_id", "quantity_of_item", "days_until_end_storage")
-FROM 'D:\bdSem\Items_in_warehouse.csv'
+FROM 'D:\bdSem\csv\Items_in_warehouse.csv'
 DELIMITER ';'
 CSV HEADER;
 
 COPY "Expenses"("storage_item_ID", "employee_id", "date", "element_quantity", "total", "type_ID")
-FROM 'D:\bdSem\Expenses.csv'
+FROM 'D:\bdSem\csv\Expenses.csv'
 DELIMITER ';'
 CSV HEADER;
 
