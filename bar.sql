@@ -183,8 +183,7 @@ CREATE TABLE IF NOT EXISTS "Warehouse_spaces" (
 	"name" varchar(100) NOT NULL UNIQUE,
 	--вместительность в литрах
 	"capacity" real NOT NULL,
-	"storage_condition_ID" integer NOT NULL,
-	"such_places_in_warehouse" integer NOT NULL
+	"storage_condition_ID" integer NOT NULL
 );
 
 --таблица скадского учета 
