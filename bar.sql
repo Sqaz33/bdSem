@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS "Menu_items" (
 	"ID" serial PRIMARY KEY,
 	"name" varchar(100) NOT NULL UNIQUE,
 	"price" integer NOT NULL,
-	"manafacture_ID" integer NOT NULL
+	"manafacture_job_titl_ID" integer NOT NULL
 );
 
 --таблица связи заказа к меню
@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS "Warehouse_spaces" (
 	"storage_condition_ID" integer NOT NULL
 );
 
+
 --таблица скадского учета 
 CREATE TABLE IF NOT EXISTS "Items_in_warehouse" (
 	"ID" serial PRIMARY KEY,
@@ -255,7 +256,7 @@ FROM 'D:\bdSem\csv\employees.csv'
 DELIMITER ';'
 CSV HEADER;
 
-COPY "Menu_items"("name", "price", "manafacture_ID")
+COPY "Menu_items"("name", "price", "manafacture_job_titl_ID")
 FROM 'D:\bdSem\csv\menu.csv'
 DELIMITER ';'
 CSV HEADER;
@@ -266,7 +267,7 @@ DELIMITER ';'
 CSV HEADER;
 
 COPY "Menu_item_composition_container"("item_ID", "menu_item_ID", "quantity")
-FROM 'D:\bdSem\csv\csv\Menu_item_composition_container.csv'
+FROM 'D:\bdSem\csv\Menu_item_composition_container.csv'
 DELIMITER ';'
 CSV HEADER;
 
@@ -280,7 +281,7 @@ FROM 'D:\bdSem\csv\Order_line.csv'
 DELIMITER ';'
 CSV HEADER;
 
-COPY "Warehouse_spaces"("name", "capacity", "storage_condition_ID", "such_places_in_warehouse")
+COPY "Warehouse_spaces"("name", "capacity", "storage_condition_ID")
 FROM 'D:\bdSem\csv\Warehouse_spaces.csv'
 DELIMITER ';'
 CSV HEADER;
@@ -443,418 +444,450 @@ BEGIN
 	END LOOP;
 END $$;	
 
-
---Запросы для функциональных требований
-
---Вести учет программы лояльности
---1. Обновить уровень программы лояльности
-WITH spent AS (
-	SELECT 
-		SUM(mi."price") total_spent,
-		cl."ID" client_ID
-	FROM 
-		"Orders" o
-	JOIN 
-		"Order_line" ol ON o."ID" = ol."order_ID"
-	JOIN 
-		"Menu_items" mi ON ol."menu_item_ID" = mi."ID"
-	JOIN 
-		"Clients" cl ON cl."ID" = o."client_ID"
-	GROUP BY 
-		cl."ID"
-)
-UPDATE
-	"Loyalty_program_accounts"
-SET 
-	"money_spent" = spent.total_spent
-FROM
-	spent
-WHERE 
-	"client_ID" = spent.client_ID;
-
---2. Обновить уровень программы лояльности
-WITH ranked_levels AS (
-	SELECT
-		lpa."ID",
-		lpa."money_spent",
-		lpv."ID" as new_lvl_ID,
-		ROW_NUMBER() OVER (PARTITION BY lpa."ID" ORDER BY lpv."price" DESC) as rank
-	FROM
-		"Loyalty_program_accounts" lpa
-	JOIN
-		"Loyalty_program_levels" lpv ON lpa."money_spent" >= lpv."price"
-)
-UPDATE
-	"Loyalty_program_accounts" lpa
-SET
-	"lvl_ID" = rl.new_lvl_ID
-FROM
-	ranked_levels rl
-WHERE
-	lpa."ID" = rl."ID" AND rl.rank = 1;
-
---3. Выписка из складского учета
-SELECT
-    si."name" as item_name, SUM(iw."quantity_of_item") as quantity
-FROM 
-	"Items_in_warehouse" iw
-JOIN 
-     "Storage_items" si ON si."ID" = iw."item_id"
-GROUP BY
-    si."name"
-ORDER BY 
-	quantity;
-
---4. Показать заказы в работе
-SELECT
-	"ID" order_ID
-FROM
-	"Orders" "or"
-WHERE 
-	"status_ID" IN (
-	SELECT os."ID"
-	FROM "Order_statuses" os
-	WHERE os."name" IN 
-	('Готовится', 'В обработке', 'Готовится', 'Неоплачен')
-	);
-
---5. Узнать самый покупаемый пункт меню
-EXPLAIN
-WITH mic as (	
-	SELECT
-		ol."menu_item_ID" mi_ID,
-		COUNT(*) mi_count
-	FROM 
-		"Order_line" ol
-	GROUP BY
-		ol."menu_item_ID"
-),
-max_mic as (
-	SELECT
-		MAX(mic.mi_count) mx
-	FROM
-		mic
-)
-SELECT
-	mi."name", mic.mi_count quantity
-FROM
-	mic
-JOIN 
-	"Menu_items" mi ON mi."ID" = mic.mi_ID
-JOIN 
-	max_mic ON max_mic.mx = mic.mi_count;
-
-
-
---6. (пример) Узнать доходы, расходы, прибыль за определенный период (допустим месяц).
---Расходы
-WITH expenses as (
-		SELECT 
-			SUM("total") total
-		FROM 
-			"Expenses"
-		WHERE "date" BETWEEN (NOW() - INTERVAL '1 month') AND NOW()
-),
---Доходы
-income as (
-	SELECT 
-		SUM(ord."total") total
-	FROM 
-		"Orders" ord
-	WHERE "date" BETWEEN (NOW() - INTERVAL '1 month') AND NOW()
-)
---Прибыль
-SELECT 
-	e.total AS "expenses",
-	i.total AS "income",
-	(i.total - e.total) AS profit
-FROM 
-	expenses e
-CROSS JOIN 
-	income i;
--- SET enable_seqscan = on;
---7. (пример) Узнать посещаемость за определенный период (предыдущей месяц).
-WITH unique_orders AS (
-	SELECT 
-		"client_ID",     
-		"date",
-		EXTRACT(MONTH FROM "date") "month"
-	FROM 
-		"Orders" ord
-	GROUP BY	
-		"client_ID",     
-		"date"
-)
-SELECT 
-	COUNT(*) attendance
-FROM 
-	unique_orders
-WHERE
-	EXTRACT(MONTH FROM NOW()) - 1 = "month";
-
-
---Процедуры 
---1. Эта процедура изменяет зарплату на должности и следом изменяет зарплату сотрудников на должности.
-CREATE PROCEDURE update_employee_salary(
-    IN job_title_name VARCHAR,
-    IN new_salary INTEGER
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    cur_ID INTEGER;
-    jt_id INTEGER;
- 	new_final_payment INTEGER;
-BEGIN
-    -- Обновление зарплаты в таблице должностей
-    UPDATE "Job_titles" jt
-    SET "salary" = new_salary
-    WHERE "name" = job_title_name;
-
-    -- Обновление итоговой оплаты в таблице сотрудников
-    UPDATE "Employees" e
-    SET "final_payment" = jt."salary"
-    FROM "Job_titles" jt
-    WHERE jt."ID" = e."job_titel_ID";
-
-    -- Получение ID должности
-    SELECT jt."ID" INTO jt_id
-    FROM "Job_titles" jt
-    WHERE jt."name" = job_title_name;
-
-    -- Обновление итоговой оплаты для каждого сотрудника с указанной должностью
-    FOR cur_ID IN (SELECT e."ID" FROM "Employees" e WHERE e."job_titel_ID" = jt_id) LOOP
-		SELECT  calculate_final_payment(cur_ID) INTO new_final_payment;
-        UPDATE "Employees"
-		SET "final_payment" = new_final_payment
-		WHERE "ID" = cur_ID;
-    END LOOP;
-END;
-$$;
-
--- Вызов процедуры
-CALL update_employee_salary('Менеджер бара', 35001);
-
-
---2. Эта процедура добавляет нового клиента, если номер телефона не существует в базе данных.
-CREATE PROCEDURE add_new_client(
-    IN phone_numb VARCHAR,
-    IN full_name TEXT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM "Clients" WHERE "phone_number" = phone_numb) THEN
-        INSERT INTO "Clients" ("phone_number", "full_name")
-        VALUES (phone_numb, full_name);
-    END IF;
-END;
-$$;
-
-
--- Вызов процедуры
-CALL add_new_client('123-456-7890', 'John Doe');
-
-
---3. Эта процедура обновляет уровень программы лояльности клиента на основе потраченных денег
-CREATE PROCEDURE update_loyalty_level(
-    IN client_id INTEGER
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-   	mon INTEGER;
-    new_level_id INTEGER;
-BEGIN
-    SELECT "money_spent" INTO mon
-    FROM "Loyalty_program_accounts"
-    WHERE "client_ID" = client_id;
-
-    FOR new_level_id IN 1..(SELECT COUNT(*) FROM "Loyalty_program_levels") LOOP
-        IF mon >= (SELECT "price" FROM "Loyalty_program_levels" WHERE "ID" = new_level_id) THEN
-            UPDATE "Loyalty_program_accounts"
-            SET "lvl_ID" = new_level_id
-            WHERE "client_ID" = client_id;
-        END IF;
-    END LOOP;
-END;
-$$;
-
--- Вызов процедуры
-CALL update_loyalty_level(2107);
-
-
--- Функции
-
---1. Эта функция возвращает общее количество заказов для заданного клиента
-CREATE OR REPLACE FUNCTION get_client_order_count(client_id INTEGER)
-RETURNS INTEGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    order_count INTEGER;
-BEGIN
-    SELECT COUNT(*) INTO order_count
-    FROM "Orders"
-    WHERE "client_ID" = client_id;
-    RETURN order_count;
-END;
-$$;
-
-
--- Вызов функции
-SELECT get_client_order_count(1);
-
---2.  Эта функция вычисляет итоговую оплату сотрудника с учетом сверхурочных минут
-CREATE OR REPLACE FUNCTION calculate_final_payment(employee_id INTEGER)
-RETURNS INTEGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    base_salary INTEGER;
-    overtime_minutes INTEGER;
-    overtime_payment INTEGER;
-    final_payment INTEGER;
-BEGIN
-    SELECT jt.salary, e.overtime_minutes INTO base_salary, overtime_minutes
-    FROM "Employees" e
-    JOIN "Job_titles" jt ON e."job_titel_ID" = jt."ID"
-    WHERE e."ID" = employee_id;
-
-    overtime_payment := (overtime_minutes / 60) * (base_salary / 160); -- предполагая, что 160 часов в месяц
-    final_payment := base_salary + overtime_payment;
-    RETURN final_payment;
-END;
-$$;
-
--- Вызов функции
-SELECT calculate_final_payment(1);
-
-
---3.  Эта функция возвращает информацию о клиенте (ID, номер телефона и полное имя)
-CREATE OR REPLACE FUNCTION get_client_info(client_id INTEGER)
-RETURNS TABLE(id INTEGER, phone_number VARCHAR, full_name TEXT)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT cl."ID", cl."phone_number", cl."full_name"
-    FROM "Clients" cl
-    WHERE "ID" = client_id;
-END;
-$$;
-
--- Вызов функции
-SELECT * FROM get_client_info(1);
-
--- Представления
-/*
-1. Список сотрудников с их должностями и зарплатами
-Это представление объединяет данные из таблиц Employees и Job_titles, 
-чтобы предоставить информацию о сотрудниках, их должностях и зарплатах.
-*/
-
-CREATE VIEW EmployeeJobDetails AS
-SELECT 
-    e."ID" AS employee_id,
-    e."full_name" AS employee_name,
-    j."name" AS job_title,
-    j."salary" AS job_salary
-FROM 
-    "Employees" e
-JOIN 
-    "Job_titles" j ON e."job_titel_ID" = j."ID";
-
-SELECT * FROM EmployeeJobDetails LIMIT 5;
-
-
-/*
-2. Заказы клиентов с деталями
-Это представление объединяет данные из таблиц Orders, Clients и Order_statuses, 
-чтобы показать информацию о заказах клиентов, их статусах и датах.
-*/
-CREATE VIEW ClientOrderDetails AS
-SELECT 
-    o."ID" AS order_id,
-    o."date" AS order_date,
-    c."full_name" AS client_name,
-    os."name" AS order_status,
-    o."total" AS order_total
-FROM 
-    "Orders" o
-LEFT JOIN 
-    "Clients" c ON o."client_ID" = c."ID"
-JOIN 
-    "Order_statuses" os ON o."status_ID" = os."ID";
-
-SELECT * FROM ClientOrderDetails LIMIT 5;
-
-/*
-3. Затраты по типам и сотрудникам
-Это представление объединяет данные из таблиц Expenses, Types_of_expenditure и
-Employees, чтобы предоставить информацию о затратах по типам и сотрудникам, которые их сделали.
-*/
-CREATE VIEW ExpenseDetails AS
-SELECT 
-    ex."ID" AS expense_id,
-    ex."date" AS expense_date,
-    ex."element_quantity" AS quantity,
-    ex."total" AS total_amount,
-    t."name" AS expense_type,
-    e."full_name" AS employee_name
-FROM 
-    "Expenses" ex
-JOIN 
-    "Types_of_expenditure" t ON ex."type_ID" = t."ID"
-LEFT JOIN 
-    "Employees" e ON ex."employee_id" = e."ID";
-
-SELECT * FROM ExpenseDetails LIMIT 5;
-
-
---Тригер
-
-/*
-Тригер срабатывает при изменении столбца overtime_minutes
-в таблице Employees, и изменят значение final_payment в
-зависимости от нового значения overtime_minutes;
-*/
-CREATE OR REPLACE FUNCTION update_final_payment()
+--2. Обновление программы лояльности для клиентов при оформлении заказа 
+-- Функция для обновления программы лояльности клиентов
+CREATE OR REPLACE FUNCTION update_loyalty_program()
 RETURNS TRIGGER AS $$
-DECLARE
-    base_salary integer;
-    overtime_bonus integer := 1000; -- фиксированная сумма за 60 минут сверхурочной работы
 BEGIN
-    -- Получаем базовую зарплату из таблице Job_titles
-    SELECT "salary" INTO base_salary
-    FROM "Job_titles"
-    WHERE "ID" = NEW."job_titel_ID";
+    -- Обновляем количество потраченных денег
+    UPDATE "Loyalty_program_accounts"
+    SET "money_spent" = "money_spent" + NEW."total"
+    WHERE "client_ID" = NEW."client_ID";
 
-    -- Рассчитываем итоговую оплату
-    NEW."final_payment" := base_salary + (NEW."overtime_minutes" / 60) * overtime_bonus;
+    -- Обновляем уровень программы лояльности
+    UPDATE "Loyalty_program_accounts" AS lpa
+    SET "lvl_ID" = (
+        SELECT "ID"
+        FROM "Loyalty_program_levels"
+        WHERE "price" <= lpa."money_spent"
+        ORDER BY "price" DESC
+        LIMIT 1
+    )
+    WHERE lpa."client_ID" = NEW."client_ID";
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER before_update_overtime_minutes
-BEFORE UPDATE OF "overtime_minutes" ON "Employees"
+-- Триггер для вызова функции перед обновлением заказа
+CREATE TRIGGER before_update_orders
+BEFORE UPDATE ON "Orders"
 FOR EACH ROW
-WHEN (OLD."overtime_minutes" IS DISTINCT FROM NEW."overtime_minutes")
-EXECUTE FUNCTION update_final_payment();
+WHEN (OLD."total" IS DISTINCT FROM NEW."total")
+EXECUTE FUNCTION update_loyalty_program();
 
 
-update "Employees" set "overtime_minutes" = 1000 where "ID" = 1;
+-- 3. Обновлять количество расходников на складе, которые участвуют в создании пунктов меню, при оформлении заказа
+-- Функция триггера
+CREATE OR REPLACE FUNCTION decrease_items_in_warehouse()
+RETURNS TRIGGER AS $$
+DECLARE
+    item RECORD;
+    warehouse_item RECORD;
+    needed_quantity INTEGER;
+    item_consumed BOOLEAN;
+BEGIN
+    -- Проходим по каждому пункту меню в новом заказе
+    FOR item IN 
+        SELECT micc."item_ID", micc."quantity" * NEW."quantity" AS required_quantity
+        FROM "Menu_item_composition_container" micc
+        JOIN "Menu_items" mi ON mi."ID" = micc."menu_item_ID"
+        JOIN "Item_types" it ON it."ID" = micc."item_ID"
+        WHERE NEW."menu_item_ID" = mi."ID" AND it."consamable" = TRUE
+    LOOP
+        needed_quantity := item.required_quantity;
+        
+        -- Уменьшаем количество хранимых предметов в порядке срока годности
+        FOR warehouse_item IN 
+            SELECT * 
+            FROM "Items_in_warehouse" 
+            WHERE item_id = item."item_ID"
+            ORDER BY days_until_end_storage
+        LOOP
+            -- Если предметы есть на складе
+            IF warehouse_item.quantity_of_item >= needed_quantity THEN
+                -- Уменьшаем количество предметов
+                UPDATE "Items_in_warehouse"
+                SET quantity_of_item = quantity_of_item - needed_quantity
+                WHERE "ID" = warehouse_item."ID";
+                
+                -- Заканчиваем обработку текущего предмета
+                EXIT;
+            ELSE
+                -- Если предметов недостаточно, уменьшаем все, что есть, и продолжаем
+                needed_quantity := needed_quantity - warehouse_item.quantity_of_item;
+                UPDATE "Items_in_warehouse"
+                SET quantity_of_item = 0
+                WHERE ID = warehouse_item.ID;
 
-select * from "Employees" order by "ID" limit 2;
+                -- Удаляем запись, так как количество предметов стало 0
+                DELETE FROM "Items_in_warehouse"
+                WHERE ID = warehouse_item.ID;
+            END IF;
+        END LOOP;
+    END LOOP;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер
+CREATE TRIGGER after_insert_order_line
+AFTER INSERT ON "Order_line"
+FOR EACH ROW
+EXECUTE FUNCTION decrease_items_in_warehouse();
+
+
+--4. Удаление просроченных продуктов 
+CREATE OR REPLACE PROCEDURE remove_expired_products()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM "Items_in_warehouse"
+    WHERE "days_until_end_storage" <= 0;
+END;
+$$;
+
+
+--5. Выдача списка просроченных продуктов
+CREATE OR REPLACE FUNCTION get_list_expired_products()
+RETURNS TABLE(item_name varchar(100), quantity_of_item integer, days_until_end_storage integer, storage_name varchar(100)) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+		si."name", iiw."quantity_of_item", iiw."days_until_end_storage", ws."name"
+    FROM 
+		"Items_in_warehouse" iiw
+	JOIN "Warehouse_spaces" ws
+		ON ws."ID" = iiw."warehouse_place_id"
+	JOIN "Storage_items" si
+		ON si."ID" = "item_id"
+    WHERE 
+		iiw."days_until_end_storage" <= 0;
+END;
+$$;
+
+
+--6. Выдача списка не просроченных продуктов
+CREATE OR REPLACE FUNCTION get_list_not_expired_products()
+RETURNS TABLE(item_name varchar(100), quantity_of_item integer, days_until_end_storage integer, storage_name varchar(100)) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+		si."name", iiw."quantity_of_item", iiw."days_until_end_storage", ws."name"
+    FROM 
+		"Items_in_warehouse" iiw
+	JOIN "Warehouse_spaces" ws
+		ON ws."ID" = iiw."warehouse_place_id"
+	JOIN "Storage_items" si
+		ON si."ID" = "item_id"
+    WHERE 
+		iiw."days_until_end_storage" > 0;
+END;
+$$;
+
+--7. Обновление зарплаты работника при добавлении переработки 
+-- Функция для обновления зарплаты работника при добавлении переработки
+CREATE OR REPLACE FUNCTION update_employee_salary_overtime()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE "Employees"
+    SET "final_payment" = "final_payment" + (NEW."overtime_minutes" * (SELECT "salary" / 60 FROM "Job_titles" WHERE "ID" = NEW."job_titel_ID") / 60)
+    WHERE "ID" = NEW."ID";
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для вызова функции после обновления информации о переработке сотрудника
+CREATE TRIGGER after_updating_employee_overtime
+AFTER UPDATE OF "overtime_minutes" ON "Employees"
+FOR EACH ROW
+EXECUTE FUNCTION update_employee_salary_overtime();
+
+
+--8. Обновление зарплаты работника при выплате зарплаты
+-- Функция для обновления зарплаты работника при выплате зарплаты
+CREATE OR REPLACE FUNCTION update_employee_salary_payment_date()
+RETURNS TRIGGER AS $$
+BEGIN
+	INSERT INTO "Expenses" ("employee_id", "date", "element_quantity", "total", "type_ID")
+		VALUES (NEW."ID", CURRENT_DATE, 1, NEW."final_payment", 2);
+	
+    UPDATE "Employees"
+    SET "final_payment" = (SELECT "salary" FROM "Job_titles" WHERE "ID" = NEW."job_titel_ID")
+    WHERE "ID" = NEW."ID";
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для вызова функции после обновления даты выплаты зарплаты
+CREATE TRIGGER after_updating_employee_payment_date
+AFTER UPDATE OF "payment_date" ON "Employees"
+FOR EACH ROW
+EXECUTE FUNCTION update_employee_salary_payment_date();
+
+-- Выплатить зарплату
+CREATE OR REPLACE PROCEDURE pay_employee_salary()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	UPDATE "Employees"
+	SET "payment_date" = "payment_date" + INTERVAL '1 month'
+	WHERE "payment_date" = CURRENT_DATE;
+END;
+$$;
 
 
 
+--9. Обновление зарплаты работника при смене должности
+-- Функция для обновления зарплаты работника при смене должности
+CREATE OR REPLACE FUNCTION update_employee_salary_job_title()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE "Employees"
+    SET "final_payment" = (SELECT "salary" FROM "Job_titles" WHERE "ID" = NEW."job_titel_ID")
+    WHERE "ID" = NEW."ID";
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для вызова функции после обновления должности сотрудника
+CREATE TRIGGER after_updating_employee_job_title
+AFTER UPDATE OF "job_titel_ID" ON "Employees"
+FOR EACH ROW
+EXECUTE FUNCTION update_employee_salary_job_title();
 
 
+--10. Выдача расходов, доходов и прибыли за заданный период 
+-- Функция для получения расходов за заданный период
+CREATE OR REPLACE FUNCTION get_expenses(start_date date, end_date date)
+RETURNS integer 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    expenses_sum integer;
+BEGIN
+    SELECT SUM("total") INTO expenses_sum
+    FROM "Expenses"
+    WHERE "date" BETWEEN start_date AND end_date;
+
+    RETURN expenses_sum;
+END;
+$$;
+
+-- Функция для получения доходов за заданный период
+CREATE OR REPLACE FUNCTION get_income(start_date date, end_date date)
+RETURNS integer 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    income_sum integer;
+BEGIN
+    SELECT SUM("total") INTO income_sum
+    FROM "Orders"
+    WHERE "date" BETWEEN start_date AND end_date;
+
+    RETURN income_sum;
+END;
+$$;
+
+-- Функция для получения прибыли за заданный период
+CREATE OR REPLACE FUNCTION get_profit(start_date date, end_date date)
+RETURNS integer 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    expenses integer;
+    income integer;
+BEGIN
+    SELECT get_expenses(start_date, end_date) INTO expenses;
+    SELECT get_income(start_date, end_date) INTO income;
+
+    RETURN income - expenses;
+END;
+$$;
+
+--11. Выдавать доход за определенный период при изменении цены предметов, участвующих в создании пунктов меню
+--
+
+--12. Выдавать доход за определенный период при изменении цены предметов, участвующих в создании пунктов меню  
+CREATE OR REPLACE FUNCTION get_income_when_price_items_warehouse_changes(start_date date, end_date date, item_id integer, new_price integer)
+RETURNS integer 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    income_sum integer;
+    old_price integer;
+BEGIN
+    -- Изменяем цену предмета
+    SELECT "price" INTO old_price
+    FROM "Storage_items"
+    WHERE "ID" = item_id;
+
+    UPDATE "Storage_items"
+    SET "price" = new_price
+    WHERE "ID" = item_id;
+
+    -- Рассчитываем доход за указанный период
+    SELECT SUM("total") INTO income_sum
+    FROM "Orders"
+    WHERE "date" BETWEEN start_date AND end_date;
+
+    UPDATE "Storage_items"
+    SET "price" = old_price
+    WHERE "ID" = item_id;
+
+    RETURN income_sum;
+END;
+$$;
+
+-- 13. Выдавать возможно ли положить предмет на склад
+CREATE OR REPLACE FUNCTION is_possibly_put_in_storage(IN item_name varchar(100), IN quantity integer)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	available_volume REAL;
+	item_volume REAL;
+	item_storage_cond_ID integer;
+	item_ID integer;
+BEGIN 
+	--получить объем предмета и storage_cond
+	SELECT 
+		si."volume", si."storage_condition_ID", si."ID" INTO item_volume, item_storage_cond_ID, item_ID
+	FROM 
+		"Storage_items" si
+	WHERE 
+		si."name" = item_name;
+
+-- получить доступные объемы в каждом нужном спэйсе (изначальные - занятый - (остаток от деления на объем предмета)) 
+-- сумировать доступные объемы 
+-- вернуть: сумма доступных объемов >= необходимый объем
+	
+	WITH volumes_occupied AS (
+	-- получить занимаемые объемы в каждом спэйсе
+		SELECT 
+			iiw."warehouse_place_id" wp_ID, SUM(si."volume" * iiw."quantity_of_item") v
+		FROM 
+			"Items_in_warehouse" iiw
+		JOIN "Storage_items" si
+			ON si."ID" = iiw."item_id"
+		GROUP BY
+			iiw."warehouse_place_id"
+	), av_vol AS(
+		-- получить доступные объемы в каждом нужном спэйсе
+		SELECT 
+			ws."capacity" - vo.v - (ws."capacity" - (ws."capacity"::INTEGER / CAST(item_volume AS INTEGER)) * item_volume) v
+		FROM 
+			volumes_occupied vo
+		JOIN "Warehouse_spaces" ws
+			ON ws."ID" = vo.wp_ID
+		GROUP BY
+			ws."ID", ws."capacity", vo.v
+		HAVING 
+			ws."storage_condition_ID" = item_storage_cond_ID
+	) 
+	SELECT 
+		SUM(av.v) INTO available_volume
+	FROM av_vol av;
+
+	RETURN available_volume >= (item_volume * quantity);
+END;
+$$;
 
 
+-- 14. Класть вещи на склад 
+CREATE OR REPLACE PROCEDURE insert_in_warehouse(IN item_name varchar(100), IN quantity integer)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	available_volume REAL;
+	item_volume REAL;
+	item_storage_cond_ID integer;
+	item_days_unti_end_stor integer;
+	total_insert_volume real;
+	record RECORD;
+	item_ID integer;
+BEGIN
+	--получить объем предмета и storage_cond
+	SELECT 
+		si."volume", si."storage_condition_ID", si."shell_life_in_days" , si."ID" 
+		INTO item_volume, item_storage_cond_ID, item_days_unti_end_stor, item_ID
+	FROM 
+		"Storage_items" si
+	WHERE 
+		si."name" = item_name;
 
+	total_insert_volume := item_volume * quantity;
+	
+	FOR record IN (
+		WITH volumes_occupied AS (
+		-- получить занимаемые объемы в каждом спэйсе
+			SELECT 
+				iiw."warehouse_place_id" wp_ID, SUM(si."volume" * iiw."quantity_of_item") v
+			FROM 
+				"Items_in_warehouse" iiw
+			JOIN "Storage_items" si
+				ON si."ID" = iiw."item_id"
+			GROUP BY
+				iiw."warehouse_place_id"
+		)
+			-- получить доступные объемы в каждом нужном спэйсе
+			SELECT 
+				ws."ID" ws_ID, 
+				ws."capacity" - vo.v - (ws."capacity" - (ws."capacity"::INTEGER / CAST(item_volume AS INTEGER)) * item_volume) vol
+			FROM 
+				volumes_occupied vo
+			JOIN "Warehouse_spaces" ws
+				ON ws."ID" = vo.wp_ID
+			GROUP BY
+				ws."ID", ws."capacity", vo.v
+			HAVING 
+				ws."storage_condition_ID" = item_storage_cond_ID
+	)	LOOP 
+			IF total_insert_volume <= 0 THEN
+				RETURN;
+			END IF;
+		
+			INSERT INTO "Items_in_warehouse" ("item_id", "warehouse_place_id", "quantity_of_item", "days_until_end_storage")
+				VALUES 
+					(item_ID, record.ws_ID,  FLOOR(CAST(LEAST(total_insert_volume, record.vol) AS REAL) / item_volume), item_days_unti_end_stor);
+			total_insert_volume := total_insert_volume - record.vol;
+		END LOOP;	
+END;
+$$;
+
+
+-- 15. Вставлять траты на предметы
+CREATE OR REPLACE PROCEDURE insert_in_expenses(IN item_name varchar(100), IN quantity integer)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    item_id INTEGER;
+    type_id INTEGER;
+    item_price NUMERIC;
+BEGIN
+    SELECT si."ID", si."price"
+    INTO item_id, item_price
+    FROM "Storage_items" si
+    WHERE si."name" = item_name;
+
+    SELECT "t"."ID"
+    INTO type_id
+    FROM "Types_of_expenditure" "t"
+    WHERE "t"."name" = 'Расходный материалы';
+
+    INSERT INTO "Expenses" ("storage_item_ID", "date", "element_quantity", "total", "type_ID")
+    VALUES (item_id, CURRENT_DATE, quantity, quantity * item_price, type_id);
+END;
+$$;
 
 
 
