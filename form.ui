@@ -47,7 +47,7 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>3</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="page_1">
       <widget class="QWidget" name="horizontalLayoutWidget">
@@ -163,15 +163,51 @@
             <string>Статус</string>
            </property>
           </column>
+          <column>
+           <property name="text">
+            <string>ФИО сотрудника</string>
+           </property>
+          </column>
          </widget>
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QLineEdit" name="lineEdit">
-            <property name="text">
-             <string>id клиента</string>
-            </property>
+           <widget class="QTableWidget" name="clients_table_for_order">
+            <column>
+             <property name="text">
+              <string>Новый столбец</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Номер телефона</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Денег потрачено</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Программа лояльности</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="employee_table_for_order">
+            <column>
+             <property name="text">
+              <string>ФИО</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Должность</string>
+             </property>
+            </column>
            </widget>
           </item>
           <item>
@@ -189,16 +225,82 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="add_menu_item_LE">
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <item>
+             <widget class="QTableWidget" name="menu_items_table_to_order">
+              <column>
+               <property name="text">
+                <string>Название</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Цена</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+            <item>
+             <widget class="QTableWidget" name="menu_item_from_order_table">
+              <column>
+               <property name="text">
+                <string>Название</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Цена</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>В заказ</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Из заказа</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="add_menu_item_to_order_button">
             <property name="text">
-             <string>id пункта меню</string>
+             <string>Добавить в заказ</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="add_menu_item_button">
+           <widget class="QPushButton" name="del_menu_item_from_order_button">
             <property name="text">
-             <string>Добавить в заказ</string>
+             <string>Удалить из заказа</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="orders_statuse_table">
+            <column>
+             <property name="text">
+              <string>Статус</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="change_order_status_button">
+            <property name="text">
+             <string>Редактировать заказ</string>
             </property>
            </widget>
           </item>
