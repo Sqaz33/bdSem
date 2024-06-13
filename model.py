@@ -25,9 +25,9 @@ class Model:
                 lpl."name"
             FROM 
                 "Clients" cl
-            JOIN "Loyalty_program_accounts" lpa
+            LEFT JOIN "Loyalty_program_accounts" lpa
                 ON lpa."client_ID" = cl."ID"
-            JOIN "Loyalty_program_levels" lpl 
+            LEFT JOIN "Loyalty_program_levels" lpl 
                 ON lpl."ID" = lpa."lvl_ID"
             ORDER BY 
                 cl."ID"
@@ -42,6 +42,12 @@ class Model:
             (phone_number, full_name)
         )
         self.conn.commit()
+        
+    def edit_client(self, cl_ID: int, phone_number: str, full_name: str) -> None:
+        self.cur.execute(
+            'UPDATE "Clients" SET "phone_number" = %s, "full_name" = %s WHERE "ID" = %s',
+            (phone_number, )
+        )
 
     def update_client_lpa(self, client_ID: int, lpa_ID):
         pass
@@ -95,4 +101,7 @@ class Model:
 
 
 if __name__ == "__main__":
-    print(Model().get_clients())
+    mod = Model()
+    mod.insert_client("123asd41ssdfs", "sdf1")
+    
+    print(mod.get_clients()[-1])

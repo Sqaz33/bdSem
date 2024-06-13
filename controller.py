@@ -20,6 +20,7 @@ class Controller(QObject):
 
         self.view.form.clients_table.currentItemChanged.connect(self.set_cur_client)
         self.view.form.add_client_button.clicked.connect(self.add_client)
+        self.view.form.change_client_button.clicked.connect(self.edit_client)
 
         self.clients = self.model.get_clients()
         self.curClient = len(self.clients) - 1
@@ -54,22 +55,25 @@ class Controller(QObject):
         self.view.form.cliens_phone_LE.setText(str(self.clients[new_cur][1]))
 
     def add_client(self):
-        for i in range(1000):
-            if not self.model.is_exist_client(str(i)):
-                self.model.insert_client(str(i), str(i))
-
-        self.clients = self.model.get_clients()
-        self.fill_clients_table()
-
         full_name = self.view.form.clients_full_name_LE.text()
         phone_number = self.view.form.cliens_phone_LE.text()
+        if len(phone_number) > 20:
+             return
+         
         if not self.model.is_exist_client(phone_number):
             self.model.insert_client(phone_number, full_name)
             self.clients = self.model.get_clients()
             self.curClient = len(self.clients) - 1
         self.fill_clients_table()
 
-
+    def edit_client(self):
+        full_name = self.view.form.clients_full_name_LE.text()
+        phone_number = self.view.form.cliens_phone_LE.text()
+        if len(phone_number) > 20:
+            return
+        if not self.model.is_exist_client(phone_number):
+            pass
+        
 if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
