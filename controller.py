@@ -1,4 +1,5 @@
 from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QTableWidgetItem
 from model import Model
 from view import View
 
@@ -9,15 +10,64 @@ class Controller(QObject):
         self.model = Model()
         self.view = View()
 
-        self.view.add_menu_item_button.clicked.connect(self.add_menu_item)
+        self.curClient = -1
+        self.orderClient = -1
+        self.clients = []
 
-    def add_menu_item(self):
-        name = self.view.menu_name_input.text()
-        price = int(self.view.menu_price_input.text())
-        manufacture_id = int(self.view.menu_manufacture_id_input.text())
+        self.view.form.stackedWidget.setCurrentIndex(0)
 
-        self.model.insert_menu_item(name, price, manufacture_id)
-        self.view.display_message("Menu item added successfully!")
+        self.view.form.page_name_CB.currentIndexChanged.connect(self.page_name_CB_index_change)
+
+        self.view.form.clients_table.currentItemChanged.connect(self.set_cur_client)
+        self.view.form.add_client_button.clicked.connect(self.add_client)
+
+        self.clients = self.model.get_clients()
+        self.curClient = len(self.clients) - 1
+        self.fill_clients_table()
+
+    def page_name_CB_index_change(self, new_index: int):
+        self.view.form.stackedWidget.setCurrentIndex(new_index)
+        self.fill_clients_table()
+
+    def fill_clients_table(self):
+        self.view.form.clients_table.setRowCount(len(self.clients))
+        i = 0
+        for rec in self.clients:
+            self.view.form.clients_table.setItem(
+                i, 0, QTableWidgetItem(str(rec[0]))
+            )
+            self.view.form.clients_table.setItem(
+                i, 1, QTableWidgetItem(str(rec[1]))
+            )
+            self.view.form.clients_table.setItem(
+                i, 2, QTableWidgetItem(str(rec[2]))
+            )
+            self.view.form.clients_table.setItem(
+                i, 3, QTableWidgetItem(str(rec[3]))
+            )
+            i += 1
+
+    def set_cur_client(self, current, previous):
+        new_cur = current.row()
+        self.curClient = new_cur
+        self.view.form.clients_full_name_LE.setText(str(self.clients[new_cur][0]))
+        self.view.form.cliens_phone_LE.setText(str(self.clients[new_cur][1]))
+
+    def add_client(self):
+        for i in range(1000):
+            if not self.model.is_exist_client(str(i)):
+                self.model.insert_client(str(i), str(i))
+
+        self.clients = self.model.get_clients()
+        self.fill_clients_table()
+
+        full_name = self.view.form.clients_full_name_LE.text()
+        phone_number = self.view.form.cliens_phone_LE.text()
+        if not self.model.is_exist_client(phone_number):
+            self.model.insert_client(phone_number, full_name)
+            self.clients = self.model.get_clients()
+            self.curClient = len(self.clients) - 1
+        self.fill_clients_table()
 
 
 if __name__ == "__main__":
