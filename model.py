@@ -111,19 +111,88 @@ class Model:
         )
         self.conn.commit()
 
+    def update_order(self, order_id: int, client_id: int, employee_id: int, status_id: int) -> None:
+        self.cur.execute(
+            """
+                UPDATE 
+                    "Orders"
+                SET
+                    "client_ID" = %s,
+                    "employee_ID" = %s,
+                    "status_ID" = %s
+                WHERE
+                    "ID" = %s
+            """,
+            (client_id, employee_id, status_id, order_id)
+        )
+        self.conn.commit()
+
+    def add_to_order_cost(self, order_id: int, item_id: int) -> None:
+        self.cur.execute(
+            """
+            WITH item AS (
+                SELECT "price" pr
+                FROM "Menu_items" 
+                WHERE "ID" = %s
+            )
+            UPDATE "Orders" o
+            SET "total" = "total" + item.pr
+            FROM item
+            WHERE o."ID" = %s
+            """,
+            (item_id, order_id)
+        )
+        self.conn.commit()
+
+    def get_menu_items_from_order(self, order_id: int) -> list[Any]:
+        self.cur.execute(
+            """
+                SELECT
+                    mi."name",
+                    mi."price",
+                    ol."quantity",
+                    ol."order_ID",
+                    ol."menu_item_ID"
+                FROM 
+                    "Order_line" ol
+                JOIN "Menu_items" mi
+                    ON mi."ID" = ol."menu_item_ID"
+                WHERE
+                    ol."order_ID" = %s
+                """,
+            (order_id,)
+        )
+        return self.cur.fetchall()
+
+    def delete_menu_item_from_order(self, order_id: int, menu_item_id: int) -> None:
+        self.cur.execute(
+            'DELETE FROM "Order_line" WHERE "menu_item_ID" = %s AND "order_ID" = %s',
+            (menu_item_id, order_id)
+        )
+        self.conn.commit()
+
     def insert_order_line(self, order_id: int, menu_item_id: int, quantity: int) -> None:
-        query = sql.SQL("INSERT INTO Order_line (order_ID, menu_item_ID, quantity) VALUES (%s, %s, %s)")
+        query = sql.SQL('INSERT INTO "Order_line" ("order_ID", "menu_item_ID", "quantity") VALUES (%s, %s, %s)')
         self.cur.execute(query, (order_id, menu_item_id, quantity))
+        self.conn.commit()
+
+    def update_order_line(self, order_id: int, menu_item_id: int, quantity: int) -> None:
+        self.cur.execute(
+            'UPDATE "Order_line" SET "quantity" = %s WHERE "order_ID" = %s AND "menu_item_ID" = %s',
+            (quantity, order_id, menu_item_id)
+        )
         self.conn.commit()
 
     def get_most_popular_menu_item(self) -> int:
         self.cur.execute("""
-            SELECT "menu_item_ID", COUNT(*) as order_count
-            FROM "Order_line"
-            GROUP BY "menu_item_ID"
-            ORDER BY order_count DESC
-            LIMIT 1
-        """)
+                        SELECT mi."name", COUNT(*) as order_count
+                        FROM "Order_line" ol
+                        JOIN "Menu_items" mi
+                            ON mi."ID" = ol."menu_item_ID"
+                        GROUP BY ol."menu_item_ID", mi."name"
+                        ORDER BY order_count DESC
+                        LIMIT 1 
+                        """)
         return self.cur.fetchone()
 
     def get_employees(self) -> list[Any]:
@@ -184,6 +253,10 @@ class Model:
         self.cur.execute("SELECT get_income(%s, %s)", (start_date, end_date))
         return self.cur.fetchall()
 
+    def get_profit(self, start_date: str, end_date: str) -> int:
+        self.cur.execute("SELECT get_profit(%s, %s)", (start_date, end_date))
+        return self.cur.fetchall()
+
     def get_client_id_by_phone(self, phone_number: str) -> int:
         self.cur.execute(
             'SELECT cl."ID" FROM "Clients" cl WHERE cl."phone_number" = %s',
@@ -193,14 +266,6 @@ class Model:
         if len(res):
             return res[0][0]
         return -1
-
-    # TODO: добавить увеличение стоимости заказа
-    def add_to_order_cost(self, item_id: int):
-        pass
-
-    # TODO: добавить получение состава заказа
-    def get_menu_items_from_order(self, order_id: int) -> list[Any]:
-        pass
 
     def close(self):
         self.cur.close()
