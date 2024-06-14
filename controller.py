@@ -70,12 +70,16 @@ class Controller(QObject):
 
     def page_name_CB_index_change(self, new_index: int):
         self.view.form.stackedWidget.setCurrentIndex(new_index)
-        self.fill_clients_table(self.view.form.clients_table)
-        self.fill_clients_table(self.view.form.clients_table_for_order)
-        self.fill_orders_table()
-        self.fill_employees_table()
-        self.fill_menu_items_to_order_table()
-        self.fill_statuses_table()
+        
+        match new_index:
+            case 0:
+                self.fill_clients_table(self.view.form.clients_table)
+            case 1:
+                self.fill_clients_table(self.view.form.clients_table_for_order)
+                self.fill_orders_table()
+                self.fill_employees_table()
+                self.fill_menu_items_to_order_table()
+                self.fill_statuses_table()
 
         if len(self.clients):
             self.cur_order_client_id = self.cur_client_id = self.clients[-1][4]
